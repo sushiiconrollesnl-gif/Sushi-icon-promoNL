@@ -17,12 +17,16 @@ export default defineConfig({
     // Listen on localhost only to avoid network interface errors
     host: '127.0.0.1',
     // https: false,
-    port: 5190,
+    port: 8000,
     strictPort: false,
     proxy: {
       "/api": "http://127.0.0.1:3000",
+      target: 'http://localhost:8080', // <-- Укажите порт, на котором у вас ЛОКАЛЬНО запускается server.ts (может быть 8080, 5000, и т.д.)
+      
     },
+    
   },
+  
   preview: {
     host: true,
     port: 5191,
