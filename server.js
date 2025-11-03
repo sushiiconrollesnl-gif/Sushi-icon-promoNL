@@ -1018,7 +1018,7 @@ app.post("/api/owner/login", async (req, res) => {
       let owner;
       try {
         owner = await prisma.owner.upsert({
-          where: { email: ADMIN_CREDENTIALS.a },
+          where: { email: ADMIN_CREDENTIALS.accessCode },
           update: {
             // не обновляем lastLogin здесь, только после верификации
           },
