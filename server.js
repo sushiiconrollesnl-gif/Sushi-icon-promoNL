@@ -899,7 +899,7 @@ const ownerVerifySchema = z.object({
 const ADMIN_CREDENTIALS = {
   email: "karpenko.k.a.07@gmail.com",
   accessCode: "SUSHI-MASTER-2024-X9K7",
-  password: "SushiMaster2024!@#$%^&*()_+{}|:<>?[]\\;',./",
+  password: "SushiMaster2024!@#$%^&*()_+{}|:<>?[]\;',./",
   name: "Главный администратор"
 };
 
@@ -2175,24 +2175,34 @@ app.get(/.*/, (req, res) => {
 
 app.post('/api/export-to-sheets', async (req, res) => {
   try {
+    if (!req.ownerId) {
+      return res.status(401).json({ message: "Неверный токен." });
+    }
     const client = await auth.getClient();
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     // 1. Получаем всех пользователей
-    const users = await prisma.user.findMany({
+    const customers = await prisma.customer.findMany({
       orderBy: { createdAt: 'desc' },
     });
 
     // 2. Форматируем их для таблицы
-    const dataForSheet = users.map(user => [
-      user.id,
-      user.firstName,
-      user.lastName,
-      user.email,
-      user.phone,
-      new Date(user.birthDate).toLocaleDateString('nl-NL'), // Формат даты
-      user.postalCode,
-      new Date(user.createdAt).toLocaleString('nl-NL'),
+    const dataForSheet = customers.map(customer => [
+      customer.id,
+      customer.firstName,
+      customer.lastName,
+      customer.email,
+      customer.phoneNumber,
+      customer.birthDate ? new Date(customer.birthDate).toLocaleDateString('ru-RU') : "",
+      customer.postalCode,
+      customer.city,
+      customer.street,
+      customer.houseNumber,
+      customer.country,
+      customer.preferredFood,
+      customer.feedback,
+      customer.discountCode,
+      new Date(customer.createdAt).toLocaleString('ru-RU'),
     ]);
 
     // 3. Добавляем заголовки
@@ -2220,6 +2230,103 @@ app.post('/api/export-to-sheets', async (req, res) => {
   }
 });
 
+const sendBirthdayGreetings = async () => {
+  console.log('🎉 [Cron Job] Запуск проверки Дней Рождения...');
+  
+  const sendgridApiKey = process.env.SENDGRID_API_KEY?.replace(/^['"]|['"]$/g, '')?.trim();
+  const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL?.replace(/^['"]|['"]$/g, '')?.trim();
+  const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM_NUMBER;
+
+  try {
+    const allCustomers = await prisma.customer.findMany({
+      where: {
+        birthDate: {
+          not: null // Убедимся, что дата рождения есть
+        },
+        // isEmailVerified: true // (Опционально) Отправлять только верифицированным
+      }
+    });
+
+    const today = new Date();
+    const todayMonth = today.getMonth() + 1; // getMonth() 0-11
+    const todayDay = today.getDate();
+
+    console.log(`[Cron Job] Сегодня: ${todayDay}/${todayMonth}. Проверяем ${allCustomers.length} клиентов.`);
+
+    const birthdayCustomers = allCustomers.filter(customer => {
+      const birthDate = new Date(customer.birthDate);
+      const birthMonth = birthDate.getMonth() + 1;
+      const birthDay = birthDate.getDate();
+      return birthMonth === todayMonth && birthDay === todayDay;
+    });
+
+    if (birthdayCustomers.length === 0) {
+      console.log('🎉 [Cron Job] Сегодня нет именинников.');
+      return;
+    }
+
+    console.log(`🎉 [Cron Job] Найдено именинников: ${birthdayCustomers.length}`);
+
+    // Текст поздравления
+    const birthdaySubject = 'С Днём Рождения от Sushi Icon!';
+    const birthdayBodyText = 'С Днём Рождения! Наша команда поздравляет вас и дарит -15% на сет и сюрприз в подарок!';
+    const birthdayBodyHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #0ABAB5;">SUSHI ICON</h2>
+        <h3 style="color: #333;">С Днём Рождения, ${"Имя"}!</h3>
+        <p>Наша команда от всей души поздравляет вас с этим замечательным днём!</p>
+        <p>Мы дарим вам <strong>скидку -15% на любой сет</strong> и <strong>сюрприз в подарок</strong> к вашему заказу.</p>
+        <p style="color: #666; font-size: 14px;">Воспользуйтесь вашим подарком в ближайшее время!</p>
+        <p style="color: #666; font-size: 12px; margin-top: 30px;">С наилучшими пожеланиями, команда Sushi Icon.</p>
+      </div>
+    `;
+
+    for (const customer of birthdayCustomers) {
+      console.log(`[Cron Job] Отправка поздравления для ${customer.email} / ${customer.phoneNumber}`);
+      
+      // 1. Отправка Email
+      if (customer.email && sendgridApiKey && sendgridFromEmail) {
+        try {
+          const msg = {
+            to: customer.email,
+            from: sendgridFromEmail,
+            subject: birthdaySubject,
+            text: birthdayBodyText,
+            html: birthdayBodyHtml.replace("${","}", customer.firstName || "дорогой клиент"),
+          };
+          await sgMail.send(msg);
+          console.log(`  ✅ Email отправлен на ${customer.email}`);
+        } catch (emailError) {
+          console.error(`  ❌ Ошибка Email для ${customer.email}:`, emailError.message);
+        }
+      }
+
+      // 2. Отправка WhatsApp
+      if (customer.phoneNumber && twilioClient && whatsappFrom) {
+        try {
+          const to = `whatsapp:${customer.phoneNumber}`;
+          await twilioClient.messages.create({
+            from: whatsappFrom,
+            to: to,
+            body: birthdayBodyText,
+          });
+          console.log(`  ✅ WhatsApp отправлен на ${customer.phoneNumber}`);
+        } catch (waError) {
+          console.error(`  ❌ Ошибка WhatsApp для ${customer.phoneNumber}:`, waError.message);
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ [Cron Job] Критическая ошибка при проверке Дней Рождения:', error);
+  }
+};
+
+// Запускаем проверку каждые 6 часов (21600000 мс)
+setInterval(sendBirthdayGreetings, 6 * 60 * 60 * 1000);
+
+// (Опционально) Запустить проверку один раз при старте сервера
+sendBirthdayGreetings();
 
 const PORT = process.env.PORT || 3000;
 

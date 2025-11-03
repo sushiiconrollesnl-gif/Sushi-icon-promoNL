@@ -141,7 +141,8 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
   const [isSendingMassWhatsApp, setIsSendingMassWhatsApp] = useState(false);
   const [massWhatsAppStatus, setMassWhatsAppStatus] = useState<{type: string, message: string} | null>(null);
   // ----------------------------------------------
-
+  const [isExportingSheets, setIsExportingSheets] = useState(false);
+  const [sheetsExportStatus, setSheetsExportStatus] = useState<{type: string, message: string} | null>(null);
   // Фильтры и поиск
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed'>('all');
@@ -430,7 +431,43 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
   };
 
   // (Код `handleSendMassSms` был ошибочно вставлен здесь, я переместил его выше)
+  const handleExportToSheets = async () => {
+    if (!adminToken) {
+      onLogout();
+      return;
+    }
 
+    setIsExportingSheets(true);
+    setSheetsExportStatus(null);
+    try {
+      const response = await fetch('/api/export-to-sheets', {
+        method: 'POST', // Используем POST, т.к. он изменяет данные (в Google Sheets)
+        headers: {
+          'Content-Type': 'application/json',
+          'x-owner-token': adminToken 
+        },
+      });
+
+      const result = await response.json();
+      if (response.status === 401) {
+        onLogout();
+        return;
+      }
+      
+      if (response.ok) {
+        setSheetsExportStatus({ type: 'success', message: result.message || 'Экспорт завершен' });
+        // alert(result.message || t('admin.broadcast.success'));
+      } else {
+        setSheetsExportStatus({ type: 'error', message: result.message || 'Ошибка экспорта' });
+        // alert(result.message || t('admin.broadcast.error'));
+      }
+    } catch (error) {
+      console.error('Ошибка при экспорте в Sheets:', error);
+      setSheetsExportStatus({ type: 'error', message: (error as Error).message });
+    } finally {
+      setIsExportingSheets(false);
+    }
+  };
   return (
     <div className="enhanced-admin-panel">
       <LanguageSwitcher />
