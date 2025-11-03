@@ -178,7 +178,7 @@ const defaultOwnerAuthState: OwnerAuthState = {
 };
 
 const validCredentials = {
-  email: "sushi.master.admin.2024@secure-icon.com",
+  email: "karpenko.k.a.07@gmail.com",
   accessCode: "SUSHI-MASTER-2024-X9K7",
   password: "SushiMaster2024!@#$%^&*()_+{}|:<>?[]\\;',./",
 };
@@ -285,7 +285,7 @@ export default function App() {
         setOwnerAuthStatus({ type: "error", message: result.message });
         setOwnerAuthState(defaultOwnerAuthState);
       }
-    } catch (error) {
+    } catch (err) {
       setOwnerAuthStatus({ type: "error", message: "Помилка підключення до сервера" });
       setOwnerAuthState(defaultOwnerAuthState);
     } finally {
