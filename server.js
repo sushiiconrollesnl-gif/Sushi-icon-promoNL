@@ -480,7 +480,7 @@ async function getDeviceAndLocationInfo(req) {
 // ----------------------------------------------------------------
 
 const corsOptions = {
-  origin: 'http://localhost:5173', // Разрешаем только ваш Vite-сервер
+  origin: 'https://sushi-icon-promonl.onrender.com', // Разрешаем только ваш Vite-сервер
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
