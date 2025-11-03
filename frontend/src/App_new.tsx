@@ -178,9 +178,9 @@ const defaultOwnerAuthState: OwnerAuthState = {
 };
 
 const validCredentials = {
-  email: "karpenko.k.a.07@gmail.com",
+  email: "sushi.icon.rolles.nl@gmail.com",
   accessCode: "SUSHI-MASTER-2024-X9K7",
-  password: "SushiMaster2024!@#$%^&*()_+{}|:<>?[]\\;',./",
+  password: "SushiMaster2024!@#$%^&*()_+{}|:<>?[];',./",
 };
 
 export default function App() {
