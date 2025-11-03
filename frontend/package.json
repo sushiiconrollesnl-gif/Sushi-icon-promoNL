@@ -9,8 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "migrate": "npx prisma migrate dev",
-    "generate": "npx prisma generate",
-    "postinstall": "cd frontend && npm install && npm run build"
+    "generate": "npx prisma generate"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
