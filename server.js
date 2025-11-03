@@ -478,11 +478,24 @@ async function getDeviceAndLocationInfo(req) {
 // ----------------------------------------------------------------
 // --- НАЧАЛО МАРШРУТОВ API ---
 // ----------------------------------------------------------------
-
+const allowedOrigins = [
+  'https://sushi-icon-promonl.onrender.com', // Ваш рабочий сайт
+  'http://localhost:5173'                     // Ваш сайт для локальной разработки
+];
 const corsOptions = {
-  origin: 'https://sushi-icon-promonl.onrender.com', // Разрешаем только ваш Vite-сервер
+  origin: function (origin, callback) {
+    // Разрешить запросы без origin (например, Postman или curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   optionsSuccessStatus: 200
 };
+
 app.use(cors(corsOptions));
 app.use(express.json());
 
