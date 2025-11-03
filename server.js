@@ -951,7 +951,7 @@ app.post("/api/owner/login", async (req, res) => {
           where: { email: ADMIN_CREDENTIALS.email },
           update: {},
           create: {
-            id: "admin-001",
+            // id: "admin-001",
             email: ADMIN_CREDENTIALS.email,
             name: ADMIN_CREDENTIALS.name,
             accessCode: ADMIN_CREDENTIALS.accessCode,
@@ -1028,7 +1028,7 @@ app.post("/api/owner/login", async (req, res) => {
             // не обновляем lastLogin здесь, только после верификации
           },
           create: {
-            id: "admin-001",
+            // id: "admin-001",
             email: ADMIN_CREDENTIALS.email,
             name: ADMIN_CREDENTIALS.name,
             accessCode: ADMIN_CREDENTIALS.accessCode,
