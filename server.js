@@ -2243,7 +2243,7 @@ const sendBirthdayGreetings = async () => {
         birthDate: {
           not: {
             equals: null // "не равно null"
-          },
+          },}
         // isEmailVerified: true // (Опционально) Отправлять только верифицированным
       }
     });
