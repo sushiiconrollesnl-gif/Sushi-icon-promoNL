@@ -14,7 +14,7 @@ model Customer {
   lastName      String
   phoneNumber   String                @unique
   email         String // Сделано обязательным
-  birthDate     DateTime
+  birthDate     DateTime?
   city          String?
   street        String?
   postalCode    String?

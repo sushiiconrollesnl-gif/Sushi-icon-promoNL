@@ -2241,7 +2241,7 @@ const sendBirthdayGreetings = async () => {
     const allCustomers = await prisma.customer.findMany({
       where: {
         birthDate: {
-          NOT: {
+          not: {
           birthDate: null }
         },
         // isEmailVerified: true // (Опционально) Отправлять только верифицированным
