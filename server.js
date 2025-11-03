@@ -17,6 +17,8 @@ import { google } from 'googleapis';
 
 dotenv.config();
 
+
+
 // --- НОВОЕ: Конфигурация SendGrid только если ключ настроен ---
 // Убираем кавычки из переменных окружения, если они есть
 const sendgridApiKey = process.env.SENDGRID_API_KEY?.replace(/^['"]|['"]$/g, '')?.trim();
@@ -477,7 +479,11 @@ async function getDeviceAndLocationInfo(req) {
 // --- НАЧАЛО МАРШРУТОВ API ---
 // ----------------------------------------------------------------
 
-app.use(cors());
+const corsOptions = {
+  origin: 'http://localhost:5173', // Разрешаем только ваш Vite-сервер
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const registrationSchema = z.object({
