@@ -881,9 +881,9 @@ app.get("/api/health", (_req, res) => {
 
 // Схемы валидации для аутентификации владельца
 const ownerLoginSchema = z.object({
-  email: z.string().email(),
-  accessCode: z.string().min(6).max(25),
-  password: z.string().min(6).max(100),
+  email: z.string().trim().email(),
+  accessCode: z.string().trim().min(6).max(25),
+  password: z.string().trim().min(6).max(100),
 });
 
 // --- НОВАЯ СХЕМА ВАЛИДАЦИИ ДЛЯ 2-ГО ШАГА ---
