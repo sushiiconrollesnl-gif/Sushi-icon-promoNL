@@ -947,18 +947,13 @@ app.post("/api/owner/login", async (req, res) => {
       // ... (код для логирования неудачной попытки входа - он в порядке) ...
       let owner;
       try {
-        owner = await prisma.owner.upsert({
-          where: { email: ADMIN_CREDENTIALS.accessCode },
-          update: {},
-          create: {
-            // id: "admin-001",
-            email: ADMIN_CREDENTIALS.email,
-            name: ADMIN_CREDENTIALS.name,
-            accessCode: ADMIN_CREDENTIALS.accessCode,
-            password: ADMIN_CREDENTIALS.password,
-            isEmailVerified: true // --- ВАЖНО: Хардкод-админ всегда верифицирован
-          },
+        const owner = await prisma.owner.findUnique({
+          where: { accessCode: ADMIN_CREDENTIALS.accessCode },
         });
+        
+        if (owner) {
+          ownerId = owner.id; // Если нашли - используем настоящий ID
+        }
         ownerId = owner.id;
       } catch (ownerError) {
         console.error("Ошибка при создании/обновлении владельца для неудачной попытки:", ownerError);
@@ -1023,7 +1018,7 @@ app.post("/api/owner/login", async (req, res) => {
       let owner;
       try {
         owner = await prisma.owner.upsert({
-          where: { email: ADMIN_CREDENTIALS.accessCode },
+          where: { email: ADMIN_CREDENTIALS.a },
           update: {
             // не обновляем lastLogin здесь, только после верификации
           },
