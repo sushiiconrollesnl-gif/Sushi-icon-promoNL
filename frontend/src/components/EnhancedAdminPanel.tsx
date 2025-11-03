@@ -673,13 +673,34 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
             </div>
             
             <div className="export-buttons">
-              <button className="button button--green" onClick={() => window.open('/api/export/customers', '_blank')}>
+              <button 
+                className="button button--green" 
+                onClick={() => window.open('/api/export/customers', '_blank')}
+              >
                 {t('admin.customers.exportCsv')}
               </button>
-              <button className="button button--blue" onClick={() => window.open('/api/export/customers/json', '_blank')}>
-                {t('admin.customers.exportJson')}
+
+              {/* Кнопка "Google Sheets" (которую вы хотели) */}
+              <button 
+                className="button button--primary" // Другой цвет для наглядности
+                onClick={handleExportToSheets}
+                disabled={isExportingSheets}
+              >
+                {isExportingSheets ? t('admin.broadcast.sending') : 'Экспорт в Google Sheets'}
               </button>
             </div>
+
+           
+            {sheetsExportStatus && (
+              <div style={{ 
+                color: sheetsExportStatus.type === 'error' ? '#ff9999' : '#99ff99', 
+                marginTop: '15px', 
+                textAlign: 'center',
+                fontWeight: 'bold' 
+              }}>
+                {sheetsExportStatus.message}
+              </div>
+            )}
             
             <div className="table-container">
               <table className="enhanced-table">
