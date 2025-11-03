@@ -8,7 +8,7 @@ import { InteractiveHoverButton } from './ui/interactive-hover-button';
 import adminLogoImage from '../2025-11-01 23.26.09.jpg';
 
 // --- Определение API_URL ---
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://sushi-fvex.onrender.com';
 
 interface AdminLoginProps {
   onLogin: (isAuthenticated: boolean) => void;
