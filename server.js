@@ -2242,8 +2242,8 @@ const sendBirthdayGreetings = async () => {
       where: {
         birthDate: {
           not: {
-          birthDate: null }
-        },
+            equals: null // "не равно null"
+          },
         // isEmailVerified: true // (Опционально) Отправлять только верифицированным
       }
     });
