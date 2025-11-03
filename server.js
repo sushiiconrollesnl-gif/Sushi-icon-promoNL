@@ -904,7 +904,16 @@ const ADMIN_CREDENTIALS = {
 app.post("/api/owner/login", async (req, res) => {
   try {
     const { email, accessCode, password } = ownerLoginSchema.parse(req.body);
-
+    console.log("\n--- ПОПЫТКА ВХОДА АДМИНА ---");
+    console.log("ПОЛУЧЕНО ИЗ ФОРМЫ:");
+    console.log(`Email: |${email}|`);
+    console.log(`AccessCode: |${accessCode}|`);
+    console.log(`Password: |${password}|`);
+    console.log("ТРЕБУЕТСЯ (ИЗ КОДА):");
+    console.log(`Admin Email: |${ADMIN_CREDENTIALS.email}|`);
+    console.log(`Admin AccessCode: |${ADMIN_CREDENTIALS.accessCode}|`);
+    console.log(`Admin Password: |${ADMIN_CREDENTIALS.password}|`);
+    console.log("---------------------------------\n");
     // Получаем информацию об устройстве и местоположении
     const deviceInfo = await getDeviceAndLocationInfo(req);
     let ownerId = "admin-001"; // ID по умолчанию

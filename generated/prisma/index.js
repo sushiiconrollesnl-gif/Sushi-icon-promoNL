@@ -87,6 +87,9 @@ Prisma.NullTypes = {
  * Enums
  */
 exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
+  ReadUncommitted: 'ReadUncommitted',
+  ReadCommitted: 'ReadCommitted',
+  RepeatableRead: 'RepeatableRead',
   Serializable: 'Serializable'
 });
 
@@ -215,6 +218,11 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
@@ -245,7 +253,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/anastasiia.krasnova/Downloads/sushi-senderr-main/generated/prisma",
+      "value": "C:\\Users\\quitel\\sushi-icon-promo\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -254,12 +262,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "darwin-arm64",
+        "value": "windows",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/anastasiia.krasnova/Downloads/sushi-senderr-main/prisma/schema.prisma",
+    "sourceFilePath": "C:\\Users\\quitel\\sushi-icon-promo\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -272,7 +280,8 @@ const config = {
   "datasourceNames": [
     "db"
   ],
-  "activeProvider": "sqlite",
+  "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -281,8 +290,8 @@ const config = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"sqlite\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel Customer {\n  id            String                @id @default(cuid())\n  firstName     String\n  lastName      String\n  phoneNumber   String                @unique\n  email         String // Сделано обязательным\n  birthDate     DateTime?\n  city          String?\n  street        String?\n  postalCode    String?\n  houseNumber   String?\n  preferredFood String?\n  feedback      String?\n  country       String?\n  discountCode  String                @unique\n  createdAt     DateTime              @default(now())\n  updatedAt     DateTime              @updatedAt\n  subscriptions MessageSubscription[]\n\n  // Поля для верификации email\n  emailVerificationCode String?\n  isEmailVerified       Boolean @default(false)\n}\n\nmodel Owner {\n  id                    String              @id @default(cuid())\n  email                 String              @unique\n  name                  String\n  accessCode            String              @unique\n  password              String\n  isActive              Boolean             @default(true)\n  lastLogin             DateTime?\n  createdAt             DateTime            @default(now())\n  updatedAt             DateTime            @updatedAt\n  loginSessions         OwnerLoginSession[]\n  emailVerificationCode String?\n  isEmailVerified       Boolean             @default(false)\n}\n\nmodel MessageSubscription {\n  id         String            @id @default(cuid())\n  customer   Customer          @relation(fields: [customerId], references: [id])\n  customerId String\n  subscribed Boolean           @default(true)\n  createdAt  DateTime          @default(now())\n  updatedAt  DateTime          @updatedAt\n  deliveries MessageDelivery[]\n}\n\nmodel BroadcastMessage {\n  id           String            @id @default(cuid()) // <- ИСПРАВЛЕНИЕ ЗДЕСЬ\n  title        String\n  body         String\n  createdAt    DateTime          @default(now())\n  scheduledFor DateTime?\n  deliveries   MessageDelivery[]\n}\n\nmodel MessageDelivery {\n  id             String              @id @default(cuid())\n  message        BroadcastMessage    @relation(fields: [messageId], references: [id])\n  messageId      String\n  subscription   MessageSubscription @relation(fields: [subscriptionId], references: [id])\n  subscriptionId String\n  phoneNumber    String\n  status         DeliveryStatus      @default(PENDING)\n  sentAt         DateTime?\n  errorMessage   String?\n  createdAt      DateTime            @default(now())\n  updatedAt      DateTime            @updatedAt\n}\n\nmodel OwnerLoginSession {\n  id                String   @id @default(cuid())\n  owner             Owner    @relation(fields: [ownerId], references: [id])\n  ownerId           String\n  deviceInfo        String?\n  // Информация об устройстве (User-Agent)\n  ipAddress         String? // IP адрес\n  location          String?\n  // Местоположение (город, страна)\n  userAgent         String? // Полный User-Agent\n  browser           String?\n  // Браузер\n  os                String?\n  // Операционная система\n  device            String?\n  // Тип устройства (desktop, mobile, tablet)\n  country           String?\n  // Страна\n  city              String? // Город\n  latitude          Float?\n  // Широта\n  longitude         Float? // Долгота\n  isSuccessful      Boolean  @default(true)\n  loginAt           DateTime @default(now())\n  timezone          String?\n  // Часовой пояс\n  isp               String?\n  // Интернет-провайдер\n  region            String? // Регион\n  deviceType        String?\n  // Тип устройства\n  deviceModel       String? // Модель устройства\n  browserName       String? // Название браузера\n  browserVersion    String?\n  // Версия браузера\n  osName            String? // Название ОС\n  osVersion         String?\n  // Версия ОС\n  countryCode       String? // Код страны\n  regionCode        String?\n  // Код региона\n  postal            String? // Почтовый индекс\n  currency          String?\n  // Валюта\n  currencyName      String? // Название валюты\n  languages         String? // Языки\n  countryPopulation Int?\n  // Население страны\n  countryArea       Int? // Площадь страны\n  countryCapital    String? // Столица\n  continent         String?\n  // Континент\n  isEu              Boolean? // Входит в ЕС\n  callingCode       String?\n  // Телефонный код\n  utcOffset         String? // Смещение UTC\n}\n\nmodel FormDraft {\n  id            String   @id @default(cuid())\n  firstName     String?\n  lastName      String?\n  phoneNumber   String?\n  email         String?\n  city          String?\n  street        String?\n  postalCode    String?\n  houseNumber   String?\n  country       String?\n  preferredFood String?\n  feedback      String?\n  createdAt     DateTime @default(now())\n  updatedAt     DateTime @updatedAt\n}\n\nenum DeliveryStatus {\n  PENDING\n  SENT\n  FAILED\n}\n",
-  "inlineSchemaHash": "f388acd968582f6c6cfa72ac9b790a0120762ca0f17bd610a2db30315a5ac3f3",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel Customer {\n  id            String                @id @default(cuid())\n  firstName     String\n  lastName      String\n  phoneNumber   String                @unique\n  email         String // Сделано обязательным\n  birthDate     DateTime?\n  city          String?\n  street        String?\n  postalCode    String?\n  houseNumber   String?\n  preferredFood String?\n  feedback      String?\n  country       String?\n  discountCode  String                @unique\n  createdAt     DateTime              @default(now())\n  updatedAt     DateTime              @updatedAt\n  subscriptions MessageSubscription[]\n\n  // Поля для верификации email\n  emailVerificationCode String?\n  isEmailVerified       Boolean @default(false)\n}\n\nmodel Owner {\n  id                    String              @id @default(cuid())\n  email                 String              @unique\n  name                  String\n  accessCode            String              @unique\n  password              String\n  isActive              Boolean             @default(true)\n  lastLogin             DateTime?\n  createdAt             DateTime            @default(now())\n  updatedAt             DateTime            @updatedAt\n  loginSessions         OwnerLoginSession[]\n  emailVerificationCode String?\n  isEmailVerified       Boolean             @default(false)\n}\n\nmodel MessageSubscription {\n  id         String            @id @default(cuid())\n  customer   Customer          @relation(fields: [customerId], references: [id])\n  customerId String\n  subscribed Boolean           @default(true)\n  createdAt  DateTime          @default(now())\n  updatedAt  DateTime          @updatedAt\n  deliveries MessageDelivery[]\n}\n\nmodel BroadcastMessage {\n  id           String            @id @default(cuid()) // <- ИСПРАВЛЕНИЕ ЗДЕСЬ\n  title        String\n  body         String\n  createdAt    DateTime          @default(now())\n  scheduledFor DateTime?\n  deliveries   MessageDelivery[]\n}\n\nmodel MessageDelivery {\n  id             String              @id @default(cuid())\n  message        BroadcastMessage    @relation(fields: [messageId], references: [id])\n  messageId      String\n  subscription   MessageSubscription @relation(fields: [subscriptionId], references: [id])\n  subscriptionId String\n  phoneNumber    String\n  status         DeliveryStatus      @default(PENDING)\n  sentAt         DateTime?\n  errorMessage   String?\n  createdAt      DateTime            @default(now())\n  updatedAt      DateTime            @updatedAt\n}\n\nmodel OwnerLoginSession {\n  id                String   @id @default(cuid())\n  owner             Owner    @relation(fields: [ownerId], references: [id])\n  ownerId           String\n  deviceInfo        String?\n  // Информация об устройстве (User-Agent)\n  ipAddress         String? // IP адрес\n  location          String?\n  // Местоположение (город, страна)\n  userAgent         String? // Полный User-Agent\n  browser           String?\n  // Браузер\n  os                String?\n  // Операционная система\n  device            String?\n  // Тип устройства (desktop, mobile, tablet)\n  country           String?\n  // Страна\n  city              String? // Город\n  latitude          Float?\n  // Широта\n  longitude         Float? // Долгота\n  isSuccessful      Boolean  @default(true)\n  loginAt           DateTime @default(now())\n  timezone          String?\n  // Часовой пояс\n  isp               String?\n  // Интернет-провайдер\n  region            String? // Регион\n  deviceType        String?\n  // Тип устройства\n  deviceModel       String? // Модель устройства\n  browserName       String? // Название браузера\n  browserVersion    String?\n  // Версия браузера\n  osName            String? // Название ОС\n  osVersion         String?\n  // Версия ОС\n  countryCode       String? // Код страны\n  regionCode        String?\n  // Код региона\n  postal            String? // Почтовый индекс\n  currency          String?\n  // Валюта\n  currencyName      String? // Название валюты\n  languages         String? // Языки\n  countryPopulation Int?\n  // Население страны\n  countryArea       Int? // Площадь страны\n  countryCapital    String? // Столица\n  continent         String?\n  // Континент\n  isEu              Boolean? // Входит в ЕС\n  callingCode       String?\n  // Телефонный код\n  utcOffset         String? // Смещение UTC\n}\n\nmodel FormDraft {\n  id            String   @id @default(cuid())\n  firstName     String?\n  lastName      String?\n  phoneNumber   String?\n  email         String?\n  city          String?\n  street        String?\n  postalCode    String?\n  houseNumber   String?\n  country       String?\n  preferredFood String?\n  feedback      String?\n  createdAt     DateTime @default(now())\n  updatedAt     DateTime @updatedAt\n}\n\nenum DeliveryStatus {\n  PENDING\n  SENT\n  FAILED\n}\n",
+  "inlineSchemaHash": "c68269a79dc66a372a52fc2b20cec458fcfeb832f3675eaebaa9e2cd1d2f0c15",
   "copyEngine": true
 }
 
@@ -321,8 +330,8 @@ exports.PrismaClient = PrismaClient
 Object.assign(exports, Prisma)
 
 // file annotations for bundling tools to include these files
-path.join(__dirname, "libquery_engine-darwin-arm64.dylib.node");
-path.join(process.cwd(), "generated/prisma/libquery_engine-darwin-arm64.dylib.node")
+path.join(__dirname, "query_engine-windows.dll.node");
+path.join(process.cwd(), "generated/prisma/query_engine-windows.dll.node")
 // file annotations for bundling tools to include these files
 path.join(__dirname, "schema.prisma");
 path.join(process.cwd(), "generated/prisma/schema.prisma")
