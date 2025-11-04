@@ -1012,30 +1012,47 @@ app.post("/api/owner/login", async (req, res) => {
       });
     }
 
-      // --- УСПЕШНЫЙ ВХОД (ШАГ 1) ---
+     // --- УСПЕШНЫЙ ВХОД (ШАГ 1) ---
 
-      // Создаем или находим владельца в базе данных
       let owner;
       try {
-        owner = await prisma.owner.upsert({
-          where: { email: ADMIN_CREDENTIALS.accessCode },
-          update: {
-            lastLogin: new Date()
-          },
-          create: {
-            // id: "admin-001",
-            email: ADMIN_CREDENTIALS.email,
-            name: ADMIN_CREDENTIALS.name,
-            accessCode: ADMIN_CREDENTIALS.accessCode,
-            password: ADMIN_CREDENTIALS.password,
-            isEmailVerified: true // --- ВАЖНО: Хардкод-админ всегда верифицирован
-          },
+        // Ищем владельца строго по accessCode (он уникален и не меняется)
+        owner = await prisma.owner.findUnique({
+          where: { accessCode: ADMIN_CREDENTIALS.accessCode },
         });
+
+        if (owner) {
+          // Если админ уже есть, обновляем только то, что нужно
+          const updateData = { lastLogin: new Date() };
+
+          // Если email в базе отличается от ADMIN_CREDENTIALS.email — обновляем
+          if (owner.email !== ADMIN_CREDENTIALS.email) {
+            console.log(`📧 Email администратора обновлён: ${owner.email} → ${ADMIN_CREDENTIALS.email}`);
+            updateData.email = ADMIN_CREDENTIALS.email;
+          }
+
+          await prisma.owner.update({
+            where: { id: owner.id },
+            data: updateData,
+          });
+        } else {
+          // Если нет — создаем нового
+          owner = await prisma.owner.create({
+            data: {
+              email: ADMIN_CREDENTIALS.email,
+              name: ADMIN_CREDENTIALS.name,
+              accessCode: ADMIN_CREDENTIALS.accessCode,
+              password: ADMIN_CREDENTIALS.password,
+              isEmailVerified: true, // админ всегда верифицирован
+            },
+          });
+          console.log("🆕 Создан новый владелец-админ:", owner.email);
+        }
+
         ownerId = owner.id;
       } catch (ownerError) {
         console.error("Ошибка при создании/обновлении владельца:", ownerError);
-        // Бросаем ошибку, чтобы ее поймал главный catch
-        throw new Error("Ошибка БД при обновлении владельца."); 
+        throw new Error("Ошибка БД при обновлении владельца.");
       }
 
       // ----------------------------------------------------------------
