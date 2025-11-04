@@ -303,25 +303,24 @@ async function getDeviceAndLocationInfo(req) {
   
   if (ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost') {
     // Для localhost показываем реалистичные данные разработки
-    const developmentLocations = [
-      { country: 'Netherlands', city: 'Amsterdam', region: 'North Holland', timezone: 'Europe/Amsterdam', isp: 'DigitalOcean', lat: 52.3676, lng: 4.9041 },
-      { country: 'United States', city: 'San Francisco', region: 'California', timezone: 'America/Los_Angeles', isp: 'AWS', lat: 37.7749, lng: -122.4194 },
-      { country: 'Germany', city: 'Berlin', region: 'Berlin', timezone: 'Europe/Berlin', isp: 'Hetzner', lat: 52.5200, lng: 13.4050 },
-      { country: 'United Kingdom', city: 'London', region: 'England', timezone: 'Europe/London', isp: 'DigitalOcean', lat: 51.5074, lng: -0.1278 },
-      { country: 'Canada', city: 'Toronto', region: 'Ontario', timezone: 'America/Toronto', isp: 'AWS', lat: 43.6532, lng: -79.3832 }
-    ];
+   const staticLocation = { 
+      country: 'Netherlands', 
+      city: 'Amsterdam', 
+      region: 'North Holland', 
+      timezone: 'Europe/Amsterdam', 
+      isp: 'Local Development', 
+      lat: 52.3676, 
+      lng: 4.9041 
+    };
     
-    // Выбираем случайное местоположение для демонстрации
-    const randomLocation = developmentLocations[Math.floor(Math.random() * developmentLocations.length)];
-    
-    locationDetails = `${randomLocation.city}, ${randomLocation.country}`;
-    country = randomLocation.country;
-    city = randomLocation.city;
-    region = randomLocation.region;
-    latitude = randomLocation.lat;
-    longitude = randomLocation.lng;
-    timezone = randomLocation.timezone;
-    isp = randomLocation.isp;
+    locationDetails = `${staticLocation.city}, ${staticLocation.country}`;
+    country = staticLocation.country;
+    city = staticLocation.city;
+    region = staticLocation.region;
+    latitude = staticLocation.lat;
+    longitude = staticLocation.lng;
+    timezone = staticLocation.timezone;
+    isp = staticLocation.isp;
   } else if (externalLocation) {
     // Используем данные из внешнего API (более точные)
     const addressParts = [];
@@ -2278,13 +2277,21 @@ const sendBirthdayGreetings = async () => {
     const today = new Date();
     const todayMonth = today.getMonth() + 1; // getMonth() 0-11
     const todayDay = today.getDate();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+
 
     console.log(`[Cron Job] Сегодня: ${todayDay}/${todayMonth}. Проверяем ${allCustomers.length} клиентов.`);
 
     const birthdayCustomers = allCustomers.filter(customer => {
+      if (!customer.birthDate) return false;
       const birthDate = new Date(customer.birthDate);
       const birthMonth = birthDate.getMonth() + 1;
       const birthDay = birthDate.getDate();
+
+      const isBirthday = birthMonth === todayMonth && birthDay === todayDay;
+      const notCongratulatedToday = !customer.lastBirthdayGreetingSent || customer.lastBirthdayGreetingSent < startOfToday;
+
       return birthMonth === todayMonth && birthDay === todayDay;
     });
 
@@ -2315,6 +2322,7 @@ const sendBirthdayGreetings = async () => {
       // 1. Отправка Email
       if (customer.email && sendgridApiKey && sendgridFromEmail) {
         try {
+          let finalHtml = birthdayBodyHtml.replace('${"Имя"}', customer.firstName || "дорогой клиент");
           const msg = {
             to: customer.email,
             from: sendgridFromEmail,
@@ -2332,16 +2340,14 @@ const sendBirthdayGreetings = async () => {
       // 2. Отправка WhatsApp
       if (customer.phoneNumber && twilioClient && whatsappFrom) {
         try {
-          const to = `whatsapp:${customer.phoneNumber}`;
-          await twilioClient.messages.create({
-            from: whatsappFrom,
-            to: to,
-            body: birthdayBodyText,
-          });
-          console.log(`  ✅ WhatsApp отправлен на ${customer.phoneNumber}`);
-        } catch (waError) {
-          console.error(`  ❌ Ошибка WhatsApp для ${customer.phoneNumber}:`, waError.message);
-        }
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: { lastBirthdayGreetingSent: new Date() } // Ставим ТЕКУЩЕЕ время
+        });
+        console.log(`  [Cron Job] Клиент ${customer.id} помечен как поздравленный.`);
+      } catch (updateError) {
+        console.error(`  ❌ Ошибка обновления lastBirthdayGreetingSent для ${customer.id}:`, updateError.message);
+      }
       }
     }
 
@@ -2351,10 +2357,10 @@ const sendBirthdayGreetings = async () => {
 };
 
 // Запускаем проверку каждые 6 часов (21600000 мс)
-setInterval(sendBirthdayGreetings, 6 * 60 * 60 * 1000);
+setInterval(sendBirthdayGreetings, 24 * 60 * 60 * 1000);
 
 // (Опционально) Запустить проверку один раз при старте сервера
-sendBirthdayGreetings();
+// sendBirthdayGreetings();
 
 const PORT = process.env.PORT || 3000;
 

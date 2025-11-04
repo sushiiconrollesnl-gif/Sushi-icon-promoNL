@@ -135,7 +135,7 @@ export const DataExporter: React.FC<DataExporterProps> = ({ ownerEmail, customer
       </p>
       
       <div className="data-exporter__formats">
-        <div className="export-format">
+        {/* <div className="export-format">
           <h5>📄 {t("owner.export.formats.csv.title")}</h5>
           <p>{t("owner.export.formats.csv.description")}</p>
           <button 
@@ -145,7 +145,7 @@ export const DataExporter: React.FC<DataExporterProps> = ({ ownerEmail, customer
           >
             {isExporting ? t("owner.export.status.exporting") : t("owner.export.formats.csv.button")}
           </button>
-        </div>
+        </div> */}
 
         <div className="export-format">
           <h5>📋 {t("owner.export.formats.json.title")}</h5>

@@ -28,8 +28,9 @@ model Customer {
   subscriptions MessageSubscription[]
 
   // Поля для верификации email
-  emailVerificationCode String?
-  isEmailVerified       Boolean @default(false)
+  emailVerificationCode    String?
+  isEmailVerified          Boolean   @default(false)
+  lastBirthdayGreetingSent DateTime?
 }
 
 model Owner {

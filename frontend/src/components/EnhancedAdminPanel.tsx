@@ -673,12 +673,12 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
             </div>
             
             <div className="export-buttons">
-              <button 
+              {/* <button 
                 className="button button--green" 
                 onClick={() => window.open('/api/export/customers', '_blank')}
               >
                 {t('admin.customers.exportCsv')}
-              </button>
+              </button> */}
 
               {/* Кнопка "Google Sheets" (которую вы хотели) */}
               <button 
