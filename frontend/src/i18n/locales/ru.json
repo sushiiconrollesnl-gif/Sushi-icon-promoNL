@@ -539,6 +539,7 @@
       "verificationTitle": "Верификация",
       "verificationCodeLabel": "Код с почты",
       "verificationCodeSent": "Учетные данные верны. Код отправлен на ваш email.",
+      "verificationSpamWarning": "P.S. Код может попасть в папку 'Спам'.",
       "verifying": "Проверка...",
       "loginButton": "Войти",
       "backButton": "Назад",
@@ -580,7 +581,7 @@
       "title": "📞 Контакты",
       "phone": "Телефон",
       "email": "Email",
-      "emailValue": "info@sushiicon.nl"
+      "emailValue": "https://sushi.icon.rollesnl.onrender.com"
     },
     "address": {
       "title": "📍 Адрес",

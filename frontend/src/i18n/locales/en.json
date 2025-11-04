@@ -502,6 +502,7 @@
       "verificationTitle": "Verification",
       "verificationCodeLabel": "Verification Code",
       "verificationCodeSent": "Credentials are correct. Code has been sent to your email.",
+      "verificationSpamWarning": "P.S. The code might end up in your 'Spam' folder.",
       "verifying": "Verifying...",
       "loginButton": "Login",
       "backButton": "Back",
@@ -543,7 +544,7 @@
       "title": "📞 Contacts",
       "phone": "Phone",
       "email": "Email",
-      "emailValue": "info@sushiicon.nl"
+      "emailValue": "https://sushi.icon.rollesnl.onrender.com"
     },
     "address": {
       "title": "📍 Address",

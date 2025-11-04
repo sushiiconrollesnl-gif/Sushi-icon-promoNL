@@ -468,6 +468,7 @@
       "verificationTitle": "Verificatie",
       "verificationCodeLabel": "Verificatiecode",
       "verificationCodeSent": "Inloggegevens zijn correct. Code is naar uw e-mail verzonden.",
+      "verificationSpamWarning": "P.S. De code kan in uw 'Spam'-map terechtkomen.",
       "verifying": "Verifiëren...",
       "loginButton": "Inloggen",
       "backButton": "Terug",
@@ -498,7 +499,7 @@
       "title": "📞 Contacten",
       "phone": "Telefoon",
       "email": "E-mail",
-      "emailValue": "info@sushiicon.nl"
+      "emailValue": "https://sushi.icon.rollesnl.onrender.com"
     },
     "address": {
       "title": "📍 Adres",

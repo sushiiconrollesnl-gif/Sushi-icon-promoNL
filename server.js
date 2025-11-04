@@ -514,7 +514,7 @@ const registrationSchema = z.object({
 });
 
 
-const GOOGLE_SHEET_ID = 'ВАШ_ID_ТАБЛИЦЫ_ИЗ_URL';
+const GOOGLE_SHEET_ID = '1BQQrdJATU9hFzlphr_1i3GZfh5Y3wld_Xpf8DSyPi60';
 const auth = new google.auth.GoogleAuth({
   keyFile: 'creds.json', // Путь к вашему JSON ключу
   scopes: 'https://www.googleapis.com/auth/spreadsheets',
