@@ -17,8 +17,6 @@ import { google } from 'googleapis';
 
 dotenv.config();
 
-
-
 // --- НОВОЕ: Конфигурация SendGrid только если ключ настроен ---
 // Убираем кавычки из переменных окружения, если они есть
 const sendgridApiKey = process.env.SENDGRID_API_KEY?.replace(/^['"]|['"]$/g, '')?.trim();
