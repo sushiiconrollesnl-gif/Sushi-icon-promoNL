@@ -2210,7 +2210,7 @@ app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend/dist', 'index.html'));
 });
 
-app.post('/api/export-to-sheets', async (req, res) => {
+app.post('/api/export-to-sheets', authenticateSession, async (req, res) => {
   try {
     if (!req.ownerId) {
       return res.status(401).json({ message: "Неверный токен." });
