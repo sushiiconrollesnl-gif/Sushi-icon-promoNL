@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
-
+import brandLogoImage from '../assets/sushi-icon-logo.svg';
 // --- (Интерфейсы Customer, LoginSession, SyncedFormData, DeviceInfo остаются теми же) ---
 interface Customer {
   id: string;
@@ -115,8 +115,7 @@ interface EnhancedAdminPanelProps {
 
 export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminToken, onLogout }) => {
   const { t } = useTranslation();
-  const BRAND_IMAGE_URL = (typeof window !== 'undefined' && window.localStorage?.getItem('brandImageUrl')) || '/src/assets/sushi-icon-logo.svg';
-  
+  const BRAND_IMAGE_URL = brandLogoImage;  
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loginSessions, setLoginSessions] = useState<LoginSession[]>([]);
   const [currentDeviceInfo, setCurrentDeviceInfo] = useState<DeviceInfo | null>(null);
@@ -469,7 +468,19 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
     }
   };
   return (
-    <div className="enhanced-admin-panel">
+    <div 
+      className="enhanced-admin-panel"
+      style={{
+        background: 
+          'radial-gradient(70% 55% at 24% 20%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 32%), radial-gradient(95% 80% at 80% 82%, rgba(62, 205, 255, 0.25), rgba(62, 205, 255, 0) 46%), linear-gradient(160deg, rgba(5, 40, 82, 0.95) 0%, rgba(4, 62, 118, 0.98) 45%, rgba(7, 94, 152, 1) 100%)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)', // <-- Вот обводка, которую вы хотели
+        borderRadius: '16px',
+        boxShadow: 
+          '0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05) inset, 0 1px 0 rgba(255, 255, 255, 0.1) inset',
+        padding: '24px' // Я добавил отступы, чтобы контент не прилипал к краям
+      }}
+    >
       <LanguageSwitcher />
       {/* ... (JSX для хедера, статистики, фильтров и вкладок) ... */}
       <div className="admin-header">
@@ -772,7 +783,7 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
                     <th>{t('admin.sessions.table.details')}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody style={{ backgroundColor: 'rgb(100, 149, 237)' }}>
                   {filteredSessions.map((session) => (
                     <tr key={session.id}>
                       <td className="session-time">{formatDate(session.loginAt)}</td>
@@ -896,14 +907,14 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
               <div className="broadcast-form">
                 <div className="form-group">
                   <label>{t('admin.broadcast.channel')}</label>
-                  <div className="channel-toggle">
-                    <label>
+                 <div className="channel-toggle" style={{ display: 'flex', gap: '16px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <input type="radio" name="channel" checked={broadcastChannel==='sms'} onChange={() => setBroadcastChannel('sms')} /> SMS
                     </label>
-                    <label style={{ marginLeft: 12 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <input type="radio" name="channel" checked={broadcastChannel==='email'} onChange={() => setBroadcastChannel('email')} /> Email
                     </label>
-                    <label style={{ marginLeft: 12 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <input type="radio" name="channel" checked={broadcastChannel === 'whatsapp'} onChange={() => setBroadcastChannel('whatsapp')} /> WhatsApp
                     </label>
                   </div>
@@ -965,83 +976,6 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
                 </button>
               </div>
             </div>
-
-            <hr style={{ margin: '30px 0', border: '1px solid #444' }} />
-
-            {/* --- 2. НОВАЯ Секция Массовой рассылки --- */}
-            <div className="admin-section">
-              <h3>{t('admin.broadcast.massTitle')}</h3>
-              <p>{t('admin.broadcast.massDesc')}</p>
-
-              {/* Форма для Массовой SMS */}
-              <div className="broadcast-form" style={{ marginBottom: '20px' }}>
-                <h4>{t('admin.broadcast.massSms.title')}</h4>
-                <form onSubmit={handleSendMassSms}>
-                  <div className="form-group">
-                    <label htmlFor="mass-sms-body">{t('admin.broadcast.massSms.bodyLabel')}</label>
-                    <textarea
-                      id="mass-sms-body"
-                      value={massSmsMessage}
-                      onChange={(e) => setMassSmsMessage(e.target.value)}
-                      placeholder={t('admin.broadcast.massSms.placeholder')}
-                      className="form-textarea"
-                      rows={5}
-                    />
-                  </div>
-                  <button className="button button--primary" type="submit" disabled={isSendingMassSms}>
-                    {isSendingMassSms ? t('admin.broadcast.sending') : t('admin.broadcast.massSms.button', { count: customers.length })}
-                  </button>
-                  {massSmsStatus && (
-                    <div style={{ color: massSmsStatus.type === 'error' ? '#ff9999' : '#99ff99', marginTop: '10px' }}>
-                      {massSmsStatus.message}
-                    </div>
-                  )}
-                </form>
-              </div>
-
-              {/* Форма для Массовой WhatsApp */}
-              <div className="broadcast-form">
-                <h4>{t('admin.broadcast.massWhatsApp.title')}</h4>
-                
-                {/* ВАЖНОЕ ПРЕДУПРЕЖДЕНИЕ */}
-                <div style={{ 
-                  backgroundColor: '#332900', 
-                  border: '1px solid #ffcc00', 
-                  color: '#ffcc00', 
-                  padding: '10px', 
-                  borderRadius: '8px', 
-                  marginBottom: '15px' 
-                }}>
-                  <strong>{t('admin.broadcast.massWhatsApp.warningTitle')} </strong>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '0.9em' }}>
-                    {t('admin.broadcast.massWhatsApp.warningBody')}
-                  </p>
-                </div>
-                
-                <form onSubmit={handleSendMassWhatsApp}>
-                  <div className="form-group">
-                    <label htmlFor="mass-whatsapp-body">{t('admin.broadcast.massWhatsApp.bodyLabel')}</label>
-                    <textarea
-                      id="mass-whatsapp-body"
-                      value={massWhatsAppMessage}
-                      onChange={(e) => setMassWhatsAppMessage(e.target.value)}
-                      placeholder={t('admin.broadcast.massWhatsApp.placeholder')}
-                      className="form-textarea"
-                      rows={5}
-                    />
-                  </div>
-                  <button className="button button--primary" type="submit" disabled={isSendingMassWhatsApp}>
-                    {isSendingMassWhatsApp ? t('admin.broadcast.sending') : t('admin.broadcast.massWhatsApp.button', { count: customers.length })}
-                  </button>
-                  {massWhatsAppStatus && (
-                    <div style={{ color: massWhatsAppStatus.type === 'error' ? '#ff9999' : '#99ff99', marginTop: '10px' }}>
-                      {massWhatsAppStatus.message}
-                    </div>
-                  )}
-                </form>
-              </div>
-            </div>
-
           </div>
         )}
 
