@@ -481,7 +481,7 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
         padding: '24px' // Я добавил отступы, чтобы контент не прилипал к краям
       }}
     >
-      <LanguageSwitcher />
+      
       {/* ... (JSX для хедера, статистики, фильтров и вкладок) ... */}
       <div className="admin-header">
         <div className="admin-header__main">
