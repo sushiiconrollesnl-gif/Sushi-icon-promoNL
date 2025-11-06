@@ -241,20 +241,6 @@ exports.Prisma.FormDraftScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.ProductCategoryScalarFieldEnum = {
-  id: 'id',
-  name: 'name'
-};
-
-exports.Prisma.ProductScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  price: 'price',
-  imageUrl: 'imageUrl',
-  categoryId: 'categoryId'
-};
-
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -282,9 +268,7 @@ exports.Prisma.ModelName = {
   BroadcastMessage: 'BroadcastMessage',
   MessageDelivery: 'MessageDelivery',
   OwnerLoginSession: 'OwnerLoginSession',
-  FormDraft: 'FormDraft',
-  ProductCategory: 'ProductCategory',
-  Product: 'Product'
+  FormDraft: 'FormDraft'
 };
 
 /**

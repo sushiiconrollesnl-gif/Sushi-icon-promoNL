@@ -29,7 +29,6 @@ model Customer {
   isEmailVerified          Boolean               @default(false)
   lastBirthdayGreetingSent DateTime?
   subscriptions            MessageSubscription[]
-  marketingConsent         Boolean               @default(false)
 }
 
 model Owner {
@@ -136,22 +135,6 @@ model FormDraft {
   feedback      String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-}
-
-model ProductCategory {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  products Product[]
-}
-
-model Product {
-  id          Int             @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float
-  imageUrl    String?
-  categoryId  String
-  category    ProductCategory @relation(fields: [categoryId], references: [id])
 }
 
 enum DeliveryStatus {

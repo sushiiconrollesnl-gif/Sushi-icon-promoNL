@@ -524,6 +524,7 @@ const registrationSchema = z.object({
   houseNumber: z.string().optional(),
   preferredFood: z.string().optional(),
   feedback: z.string().optional(),
+  marketingConsent: z.boolean().optional(),
 });
 
 
@@ -617,7 +618,8 @@ app.post("/api/register", async (req, res) => {
         subscriptions: {
           create: {},
         },
-        emailVerificationCode: verificationCode
+        emailVerificationCode: verificationCode,
+        marketingConsent: data.marketingConsent || false
       },
     });
     // Отправляем код верификации на email
@@ -2270,38 +2272,42 @@ app.post('/api/export-to-sheets', authenticateSession, async (req, res) => {
 // В файле server.js
 
 async function checkAndSendBirthdayEmails() {
-  console.log('Проверка необходимости запуска sendBirthdayEmails...');
+  console.log('Task: Запуск checkAndSendBirthdayEmails...');
+  
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const currentMonth = today.getMonth() + 1; // getMonth() 0-indexed,
+  const currentDay = today.getDate();
+  const startOfYear = new Date(today.getFullYear(), 0, 1);
 
-  const startOfDay = new Date(today);
-  const endOfDay = new Date(today);
-  endOfDay.setHours(23, 59, 59, 999);
+  // Проверяем, настроен ли SendGrid
+  if (!sgMail || !process.env.SENDGRID_BIRTHDAY_TEMPLATE_ID || !process.env.SENDGRID_FROM_EMAIL) {
+    console.warn('⚠️  Рассылка ко дню рождения пропущена: SendGrid (sgMail) или SENDGRID_BIRTHDAY_TEMPLATE_ID / SENDGRID_FROM_EMAIL не настроены.');
+    return;
+  }
 
   try {
-    // 1. Получаем список клиентов
-    const customers = await prisma.customer.findMany({
-      where: {
-        birthDate: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        lastBirthdayGreetingSent: false,
-        email: {
-          not: null,
-          contains: '@'
-        }
-      },
-    });
-    
-    console.log(`Найдено ${customers.length} клиентов с днем рождения сегодня.`);
+    // 1. Получаем список клиентов, у которых сегодня ДР,
+    //    которые дали согласие на маркетинг
+    //    И которым еще не отправляли в этом году
+
+    // ВНИМАНИЕ: Используем $queryRaw для кросс-платформенного (PostgreSQL)
+    // запроса с EXTRACT (MONTH/DAY)
+    const customers = await prisma.$queryRaw`
+      SELECT * FROM "Customer" 
+      WHERE EXTRACT(MONTH FROM "birthDate") = ${currentMonth} 
+        AND EXTRACT(DAY FROM "birthDate") = ${currentDay}
+        AND "marketingConsent" = TRUE
+        AND ("lastBirthdayGreetingSent" IS NULL OR "lastBirthdayGreetingSent" < ${startOfYear})
+    `;
+
+    console.log(`Найдено ${customers.length} клиентов с днем рождения сегодня, кто дал согласие.`);
 
     // 2. Проходим по каждому клиенту в цикле
     for (const customer of customers) {
       
-      // 3. Отправляем письмо с индивидуальной обработкой ошибок
+      // 3. Отправляем письмо
       try {
-        console.log(`Отправка письма клиенту: ${customer.email}`);
+        console.log(`Отправка письма клиенту: ${customer.email} (ID: ${customer.id})`);
         
         const msg = {
           to: customer.email,
@@ -2309,20 +2315,16 @@ async function checkAndSendBirthdayEmails() {
             name: 'Sushi Icon', // Имя отправителя
             email: process.env.SENDGRID_FROM_EMAIL // Email, с которого отправляем
           },
-          // ВАЖНО: Эта тема будет видна, только если шаблон ее не переопределяет
-          subject: 'Gefeliciteerd met je verjaardag! 🎉🍣', 
-          
-          // Используем ID шаблона из SendGrid
+          subject: 'Gefeliciteerd met je verjaardag! 🎉🍣', // Тема (на всякий случай)
           templateId: process.env.SENDGRID_BIRTHDAY_TEMPLATE_ID, 
-          
-          // Данные, которые передаются в шаблон (например, {{name}})
           dynamicTemplateData: {
-            name: customer.name || 'klant', // Передаем имя клиента в шаблон
+            // ИСПРАВЛЕНО: 'name' на 'firstName' (согласно schema.prisma)
+            name: customer.firstName || 'klant', 
           },
         };
 
-        // Отправляем письмо
-        await sendGridMail.send(msg);
+        // ИСПРАВЛЕНО: 'sendGridMail.send' на 'sgMail.send'
+        await sgMail.send(msg); 
         
         // Обновляем статус, только если письмо УСПЕШНО отправлено
         await prisma.customer.update({
@@ -2333,15 +2335,17 @@ async function checkAndSendBirthdayEmails() {
         console.log(`Письмо отправлено и статус обновлен для: ${customer.email}`);
 
       } catch (emailError) {
-        // 4. Если отправка ОДНОМУ клиенту не удалась, логируем ошибку и ПРОДОЛЖАЕМ цикл
         console.error(`Ошибка при отправке письма клиенту ${customer.email}:`, emailError.message);
+        if (emailError.response) {
+           console.error('Детали ошибки SendGrid:', JSON.stringify(emailError.response.body, null, 2));
+        }
       }
     } // Конец цикла for
 
   } catch (dbError) {
-    // 5. Этот catch поймает только критическую ошибку (например, если не удалось найти клиентов)
-    console.error('Критическая ошибка при поиске клиентов в checkAndSendBirthdayEmails:', dbError);
+    console.error('Критическая ошибка (например, $queryRaw) в checkAndSendBirthdayEmails:', dbError);
   }
+  // --- КОНЕЦ ИСПРАВЛЕНИЙ ---
 }
     // // Текст поздравления
     // const birthdaySubject = 'С Днём Рождения от Sushi Icon!';

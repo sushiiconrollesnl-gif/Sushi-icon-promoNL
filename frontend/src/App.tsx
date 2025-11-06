@@ -34,6 +34,7 @@ type RegistrationFormState = {
   preferredFood: string;
   feedback: string;
   discountCode: string;
+  marketingConsent: boolean;
 };
 
 type StatusState = {
@@ -56,6 +57,7 @@ const defaultFormState: RegistrationFormState = {
   preferredFood: "",
   feedback: "",
   discountCode: "",
+  marketingConsent: false,
 };
 
 
@@ -135,9 +137,9 @@ export default function App() {
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }, [formState, addressValidation.isValid, t, lettersOnlyRegex, emailRegex]);
-  const handleInputChange = useCallback((field: keyof RegistrationFormState, value: string) => {
-    setFormState(prev => ({ ...prev, [field]: value }));
-  }, []);
+  const handleInputChange = useCallback((field: keyof RegistrationFormState, value: string | boolean) => {
+  setFormState(prev => ({ ...prev, [field]: value }));
+}, []);
 
   // --- (handleSubmit остается без изменений) ---
   const handleSubmit = useCallback(async (e: FormEvent) => {
@@ -796,6 +798,18 @@ export default function App() {
                 disabled={isSubmitting}
               />
             </div>
+            <div className="form__row" style={{ flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+            <input
+              id="marketingConsent"
+              name="marketingConsent"
+              type="checkbox"
+              checked={formState.marketingConsent}
+              onChange={(event) => handleInputChange("marketingConsent", event.target.checked)} // <-- Отправляем event.target.checked
+            />
+            <label className="form__label" htmlFor="marketingConsent" style={{ marginBottom: 0 }}>
+              {t("registration.fields.marketingConsent")} {/* <-- Не забудьте добавить этот ключ в файлы i18n */}
+            </label>
+          </div>
           </form>
         </section>
       </>

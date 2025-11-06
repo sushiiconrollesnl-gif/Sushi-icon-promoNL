@@ -9,28 +9,26 @@ datasource db {
 }
 
 model Customer {
-  id            String                @id @default(cuid())
-  firstName     String
-  lastName      String
-  phoneNumber   String                @unique
-  email         String // Сделано обязательным
-  birthDate     DateTime?
-  city          String?
-  street        String?
-  postalCode    String?
-  houseNumber   String?
-  preferredFood String?
-  feedback      String?
-  country       String?
-  discountCode  String                @unique
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  subscriptions MessageSubscription[]
-
-  // Поля для верификации email
+  id                       String                @id @default(cuid())
+  firstName                String
+  lastName                 String
+  phoneNumber              String                @unique
+  email                    String
+  birthDate                DateTime?
+  city                     String?
+  street                   String?
+  postalCode               String?
+  houseNumber              String?
+  preferredFood            String?
+  feedback                 String?
+  country                  String?
+  discountCode             String                @unique
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
   emailVerificationCode    String?
-  isEmailVerified          Boolean   @default(false)
+  isEmailVerified          Boolean               @default(false)
   lastBirthdayGreetingSent DateTime?
+  subscriptions            MessageSubscription[]
 }
 
 model Owner {
@@ -43,23 +41,23 @@ model Owner {
   lastLogin             DateTime?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
-  loginSessions         OwnerLoginSession[]
   emailVerificationCode String?
   isEmailVerified       Boolean             @default(false)
+  loginSessions         OwnerLoginSession[]
 }
 
 model MessageSubscription {
   id         String            @id @default(cuid())
-  customer   Customer          @relation(fields: [customerId], references: [id])
   customerId String
   subscribed Boolean           @default(true)
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   deliveries MessageDelivery[]
+  customer   Customer          @relation(fields: [customerId], references: [id])
 }
 
 model BroadcastMessage {
-  id           String            @id @default(cuid()) // <- ИСПРАВЛЕНИЕ ЗДЕСЬ
+  id           String            @id @default(cuid())
   title        String
   body         String
   createdAt    DateTime          @default(now())
@@ -69,9 +67,7 @@ model BroadcastMessage {
 
 model MessageDelivery {
   id             String              @id @default(cuid())
-  message        BroadcastMessage    @relation(fields: [messageId], references: [id])
   messageId      String
-  subscription   MessageSubscription @relation(fields: [subscriptionId], references: [id])
   subscriptionId String
   phoneNumber    String
   status         DeliveryStatus      @default(PENDING)
@@ -79,64 +75,49 @@ model MessageDelivery {
   errorMessage   String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
+  message        BroadcastMessage    @relation(fields: [messageId], references: [id])
+  subscription   MessageSubscription @relation(fields: [subscriptionId], references: [id])
 }
 
 model OwnerLoginSession {
   id                String   @id @default(cuid())
-  owner             Owner    @relation(fields: [ownerId], references: [id])
   ownerId           String
   deviceInfo        String?
-  // Информация об устройстве (User-Agent)
-  ipAddress         String? // IP адрес
+  ipAddress         String?
   location          String?
-  // Местоположение (город, страна)
-  userAgent         String? // Полный User-Agent
+  userAgent         String?
   browser           String?
-  // Браузер
   os                String?
-  // Операционная система
   device            String?
-  // Тип устройства (desktop, mobile, tablet)
   country           String?
-  // Страна
-  city              String? // Город
+  city              String?
   latitude          Float?
-  // Широта
-  longitude         Float? // Долгота
+  longitude         Float?
   isSuccessful      Boolean  @default(true)
   loginAt           DateTime @default(now())
   timezone          String?
-  // Часовой пояс
   isp               String?
-  // Интернет-провайдер
-  region            String? // Регион
+  region            String?
   deviceType        String?
-  // Тип устройства
-  deviceModel       String? // Модель устройства
-  browserName       String? // Название браузера
+  deviceModel       String?
+  browserName       String?
   browserVersion    String?
-  // Версия браузера
-  osName            String? // Название ОС
+  osName            String?
   osVersion         String?
-  // Версия ОС
-  countryCode       String? // Код страны
+  countryCode       String?
   regionCode        String?
-  // Код региона
-  postal            String? // Почтовый индекс
+  postal            String?
   currency          String?
-  // Валюта
-  currencyName      String? // Название валюты
-  languages         String? // Языки
+  currencyName      String?
+  languages         String?
   countryPopulation Int?
-  // Население страны
-  countryArea       Int? // Площадь страны
-  countryCapital    String? // Столица
+  countryArea       Int?
+  countryCapital    String?
   continent         String?
-  // Континент
-  isEu              Boolean? // Входит в ЕС
+  isEu              Boolean?
   callingCode       String?
-  // Телефонный код
-  utcOffset         String? // Смещение UTC
+  utcOffset         String?
+  owner             Owner    @relation(fields: [ownerId], references: [id])
 }
 
 model FormDraft {
@@ -160,20 +141,4 @@ enum DeliveryStatus {
   PENDING
   SENT
   FAILED
-}
-
-model ProductCategory {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  products Product[]
-}
-
-model Product {
-  id          Int             @id @default(autoincrement()) // Используем Int для ID продукта, как в /add_ID
-  name        String
-  description String?
-  price       Float
-  imageUrl    String?
-  category    ProductCategory @relation(fields: [categoryId], references: [id])
-  categoryId  String
 }
