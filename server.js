@@ -2282,11 +2282,11 @@ async function checkAndSendBirthdayEmails() {
     // 1. Получаем список клиентов
     const customers = await prisma.customer.findMany({
       where: {
-        birthday: {
+        birthDate: {
           gte: startOfDay,
           lte: endOfDay,
         },
-        isBirthdayEmailSent: false,
+        lastBirthdayGreetingSent: false,
         email: {
           not: null,
           contains: '@'
@@ -2327,7 +2327,7 @@ async function checkAndSendBirthdayEmails() {
         // Обновляем статус, только если письмо УСПЕШНО отправлено
         await prisma.customer.update({
           where: { id: customer.id },
-          data: { isBirthdayEmailSent: true },
+          data: { lastBirthdayGreetingSent: new Date() },
         });
 
         console.log(`Письмо отправлено и статус обновлен для: ${customer.email}`);
@@ -2360,7 +2360,7 @@ async function checkAndSendBirthdayEmails() {
   
 
 // Запускаем проверку каждые 6 часов (21600000 мс)
-setInterval(sendBirthdayGreetings, 24 * 60 * 60 * 1000);
+setInterval(checkAndSendBirthdayEmails, 24 * 60 * 60 * 1000);
 
 // (Опционально) Запустить проверку один раз при старте сервера
 // sendBirthdayGreetings();
