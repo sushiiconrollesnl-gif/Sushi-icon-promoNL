@@ -2532,12 +2532,15 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   // Запускаем бота
   const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://sushi-icon-promonl.onrender.com';
 
-// Telegraf сам создаст секретный путь, чтобы никто другой не мог слать 
-// запросы на твой сервер.
-// Мы интегрируем бота в твой существующий Express-сервер.
-app.use(await bot.createWebhook({ domain: WEBHOOK_URL }));
-
-console.log(`✅ Telegram бот запущен в режиме Webhook на ${WEBHOOK_URL}`);
+// --- НОВЫЙ БЕЗОПАСНЫЙ ЗАПУСК WEBHOOK ---
+try {
+  // Мы интегрируем бота в твой существующий Express-сервер.
+  app.use(await bot.createWebhook({ domain: WEBHOOK_URL }));
+  console.log(`✅ Telegram бот успешно запущен в режиме Webhook на ${WEBHOOK_URL}`);
+} catch (err) {
+  // Просто выводим предупреждение, но НЕ роняем сервер
+  console.warn('⚠️  Ошибка запуска Telegram webhook (сервер продолжит работу):', err.message);
+}
 
 } // <-- Это закрывающая скобка от if (process.env.TELEGRAM_BOT_TOKEN)
 
