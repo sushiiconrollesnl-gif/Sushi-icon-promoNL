@@ -161,3 +161,19 @@ enum DeliveryStatus {
   SENT
   FAILED
 }
+
+model ProductCategory {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          Int             @id @default(autoincrement()) // Используем Int для ID продукта, как в /add_ID
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  categoryId  String
+}

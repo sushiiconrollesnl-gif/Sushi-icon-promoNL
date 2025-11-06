@@ -14,6 +14,10 @@ import sgMail from '@sendgrid/mail'; // -- НОВОЕ: Импорт SendGrid (ES
 import path from "path";
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
+import { Telegraf, Markup } from 'telegraf';
+import LocalSession from 'telegraf-session-local';
+import axios from 'axios';
+
 
 dotenv.config();
 
@@ -477,7 +481,11 @@ async function getDeviceAndLocationInfo(req) {
 // ----------------------------------------------------------------
 const allowedOrigins = [
   'https://sushi-icon-promonl.onrender.com', // Ваш рабочий сайт
-                       // Ваш сайт для локальной разработки
+  'https://www.sushi-icon-promonl.onrender.com',
+
+  // --- Адреса для ЛОКАЛЬНОЙ разработки ---
+  'http://127.0.0.1:8000', // <-- Ваш фронтенд Vite
+  'http://localhost:8000'  // <-- Альтернативный адрес для Vite
 ];
 
 const corsOptions = {
@@ -495,7 +503,12 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    // Сохраняем сырое тело запроса для верификации Instagram
+    req.rawBody = buf;
+  }
+}));
 
 
 const registrationSchema = z.object({
@@ -909,7 +922,7 @@ const ownerVerifySchema = z.object({
 
 // Жестко заданные данные администратора - максимально сложные для безопасности
 const ADMIN_CREDENTIALS = {
-  email: "sushi.icon.rolles.nl@gmail.com",
+  email: "karpenko.k.a.07@gmail.com",
   accessCode: "SUSHI-MASTER-2024-X9K7",
   password: "SushiMaster2024!@#$%^&*()_+{}|:<>?[];',./",
   name: "Главный администратор"
@@ -2359,7 +2372,453 @@ setInterval(sendBirthdayGreetings, 24 * 60 * 60 * 1000);
 
 // (Опционально) Запустить проверку один раз при старте сервера
 // sendBirthdayGreetings();
+// <-- ⬇️ ВСТАВЬ ВЕСЬ КОД ТЕЛЕГРАМ-БОТА ЗДЕСЬ ⬇️ -->
+//
+if (!process.env.TELEGRAM_BOT_TOKEN) {
+  console.error('Ошибка: TELEGRAM_BOT_TOKEN не найден в .env');
+} else {
+  
+  const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
+  // Подключаем сессии (для корзины)
+  bot.use((new LocalSession({ database: 'sessions.json' })).middleware());
+  
+  // Команда /start
+  bot.start((ctx) => {
+    ctx.reply(
+      'Добро пожаловать в Sushi Icon! 🍣\n' +
+      'Нажмите /menu, чтобы увидеть меню.',
+      Markup.keyboard([
+        ['/menu 📖 Меню'],
+        ['/cart 🛒 Корзина', '/help ❓ Помощь']
+      ]).resize()
+    );
+  });
+
+  // Команда /menu (подробнее в Шаге 4)
+  bot.command('menu', async (ctx) => {
+     try {
+       // Код для загрузки меню из Prisma
+       const categories = await prisma.productCategory.findMany({
+         include: { products: true }
+       });
+       
+       if (categories.length === 0) {
+         return ctx.reply('Извините, наше меню сейчас пустое. Загляните позже!');
+       }
+       
+       for (const category of categories) {
+         let menuText = `<b>${category.name}</b>\n\n`;
+         for (const product of category.products) {
+           // Формируем кнопку "Добавить" с ID продукта
+           menuText += `${product.name} - ${product.price}€\n`;
+           menuText += `/add_${product.id}\n\n`; 
+         }
+         // Отправляем как HTML, чтобы тег <b> работал
+         await ctx.replyWithHTML(menuText);
+       }
+       
+     } catch (error) {
+       console.error("Ошибка при загрузке меню:", error);
+       ctx.reply('Произошла ошибка при загрузке меню. Попробуйте позже.');
+     }
+  });
+
+  // Обработчик добавления в корзину (реагирует на /add_1, /add_2 и т.д.)
+  bot.hears(/\/add_(\d+)/, async (ctx) => {
+    const productId = parseInt(ctx.match[1]); // Получаем ID
+
+    // Ищем продукт в БД
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product) return ctx.reply('Такой продукт не найден.');
+
+    // Инициализируем корзину в сессии
+    if (!ctx.session.cart) {
+      ctx.session.cart = [];
+    }
+    
+    // Добавляем в корзину
+    ctx.session.cart.push(product);
+    ctx.reply(`✅ ${product.name} добавлен в корзину! \n/cart - посмотреть`);
+  });
+
+  // Команда /cart
+  bot.command('cart', (ctx) => {
+    if (!ctx.session.cart || ctx.session.cart.length === 0) {
+      return ctx.reply('Ваша корзина пуста.');
+    }
+    
+    let total = 0;
+    let cartText = '🛒 <b>Ваша корзина:</b>\n';
+    
+    ctx.session.cart.forEach(p => {
+      cartText += ` - ${p.name} (${p.price}€)\n`;
+      total += p.price;
+    });
+    
+    cartText += `\n<b>Итого: ${total.toFixed(2)}€</b>`;
+    
+    // Кнопки апселла и оформления
+    ctx.replyWithHTML(cartText, 
+       Markup.inlineKeyboard([
+         [ Markup.button.callback('🎁 Добавить Картошку Фри (30% скидка)', 'upsell_fries') ],
+         [ Markup.button.callback('✅ Оформить заказ', 'checkout') ]
+       ])
+    );
+  });
+
+  // Обработчик кнопки апселла
+  bot.action('upsell_fries', async (ctx) => {
+    // !! Здесь нужна логика добавления картошки (найти по ID или имени)
+    const friesId = 123; // ID картошки в твоей БД
+    const fries = await prisma.product.findUnique({ where: { id: friesId } });
+    
+    if(fries) {
+      if (!ctx.session.cart) ctx.session.cart = [];
+      ctx.session.cart.push(fries);
+      await ctx.answerCbQuery('Картошка фри добавлена!'); // Убираем часики
+      ctx.reply('✅ Картошка добавлена! /cart');
+    } else {
+      await ctx.answerCbQuery('Ошибка: Картошка не найдена в меню.');
+    }
+  });
+
+  // Обработчик кнопки "Оформить заказ"
+  bot.action('checkout', (ctx) => {
+    ctx.reply('Для оформления заказа, пожалуйста, отправьте нам свой номер телефона.',
+       Markup.keyboard([
+         // Кнопка, которая запрашивает у пользователя разрешение на телефон
+         Markup.button.contactRequest('📱 Отправить мой номер'), 
+         'Отмена'
+       ]).resize().oneTime()
+    );
+  });
+
+  // Обработчик получения контакта (телефона)
+  bot.on('contact', async (ctx) => {
+    const phone = ctx.message.contact.phone_number;
+    const user = ctx.from;
+    const cart = ctx.session.cart;
+
+    // 1. Формируем текст заказа
+    let total = 0;
+    let orderText = `<b>НОВЫЙ ЗАКАЗ (Telegram)</b>\n\n`;
+    orderText += `<b>Клиент:</b> ${user.first_name} ${user.last_name || ''} (@${user.username})\n`;
+    orderText += `<b>Телефон:</b> ${phone}\n\n`;
+    orderText += `<b>Заказ:</b>\n`;
+    
+    cart.forEach(p => {
+      orderText += ` - ${p.name} (${p.price}€)\n`;
+      total += p.price;
+    });
+    orderText += `\n<b>Итого: ${total.toFixed(2)}€</b>`;
+
+    // 2. Отправляем уведомление менеджеру
+    try {
+       const adminChatId = process.env.ADMIN_TELEGRAM_CHAT_ID;
+       await bot.telegram.sendMessage(adminChatId, orderText, { parse_mode: 'HTML' });
+    } catch(e) { console.error('Не удалось отправить заказ админу', e); }
+    
+    // 3. Отвечаем клиенту
+    ctx.reply(
+       'Спасибо! Ваш заказ принят. Наш менеджер свяжется с вами в течение 5 минут для подтверждения и оплаты.',
+       Markup.removeKeyboard() // Убираем кнопки "Отправить номер"
+    );
+    
+    // 4. Очищаем корзину
+    ctx.session.cart = [];
+  });
+  
+  // Запускаем бота
+  const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://sushi-icon-promonl.onrender.com';
+
+// Telegraf сам создаст секретный путь, чтобы никто другой не мог слать 
+// запросы на твой сервер.
+// Мы интегрируем бота в твой существующий Express-сервер.
+app.use(await bot.createWebhook({ domain: WEBHOOK_URL }));
+
+console.log(`✅ Telegram бот запущен в режиме Webhook на ${WEBHOOK_URL}`);
+
+} // <-- Это закрывающая скобка от if (process.env.TELEGRAM_BOT_TOKEN)
+
+// --- КОНЕЦ ЛОГИКИ БОТА ---
+//
+// <-- ⬆️ КОД ТЕЛЕГРАМ-БОТА ЗАКАНЧИВАЕТСЯ ЗДЕСЬ ⬆️ -->
+
+// --- НАЧАЛО БЭКЕНДА ДЛЯ INSTAGRAM БОТА ---
+// ----------------------------------------------------------------
+if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && process.env.INSTAGRAM_PAGE_ACCESS_TOKEN) {
+
+  console.log('✅ Instagram бот (бэкенд) готов к настройке Webhook.');
+
+  // --- ШАГ 1: ВЕРИФИКАЦИЯ WEBHOOK (Meta вызовет это один раз) ---
+  // Meta пришлет GET-запрос для проверки, что URL твой.
+  app.get('/api/instagram/webhook', (req, res) => {
+    console.log('[IG Webhook] Получен GET-запрос верификации от Meta...');
+
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    // Проверяем, что mode='subscribe' и токен совпадает с нашим
+    if (mode && token) {
+      if (mode === 'subscribe' && token === process.env.INSTAGRAM_VERIFY_TOKEN) {
+        console.log('[IG Webhook] Верификация GET пройдена успешно. Отправляем "challenge".');
+        res.status(200).send(challenge);
+      } else {
+        // Токены не совпали
+        console.warn('[IG Webhook] ОШИБКА: Неверный verify_token.');
+        res.sendStatus(403); // Forbidden
+      }
+    } else {
+      res.sendStatus(400); // Bad Request
+    }
+  });
+
+  // --- ШАГ 2: ПОЛУЧЕНИЕ СООБЩЕНИЙ (Meta будет слать POST сюда) ---
+  // Middleware для проверки подписи Meta (безопасность)
+  const verifyInstagramSignature = (req, res, next) => {
+    const signature = req.headers['x-hub-signature-256'];
+    if (!signature) {
+      console.warn('[IG Webhook] ОШИБКА: Запрос без подписи X-Hub-Signature-256.');
+      return res.status(403).send('Signature required');
+    }
+
+    // Создаем хэш из "сырого" тела запроса
+    const hmac = crypto.createHmac('sha256', process.env.INSTAGRAM_APP_SECRET);
+    hmac.update(req.rawBody); // Используем req.rawBody, который мы сохранили
+    const expectedSignature = 'sha256=' + hmac.digest('hex');
+
+    if (signature !== expectedSignature) {
+      console.warn('[IG Webhook] ОШИБКА: Неверная подпись. Запрос отклонен.');
+      return res.status(403).send('Invalid signature');
+    }
+
+    // Подпись верна, передаем управление дальше
+    next();
+  };
+
+  // Главный обработчик Webhook
+  app.post('/api/instagram/webhook', verifyInstagramSignature, (req, res) => {
+    const body = req.body;
+
+    // Проверяем, что это событие со страницы Instagram
+    if (body.object === 'instagram') {
+      console.log('[IG Webhook] Получено событие от Instagram...');
+      
+      body.entry.forEach(entry => {
+        // entry.messaging может быть массивом, если сообщения пришли пачкой
+        entry.messaging.forEach(messagingEvent => {
+          if (messagingEvent.message) {
+            // Главная функция, которая обрабатывает сообщение
+            handleInstagramMessage(messagingEvent);
+          }
+        });
+      });
+
+      // Meta требует *немедленный* ответ 200 OK, чтобы понять, что мы живы.
+      // Саму логику (handleInstagramMessage) мы выполняем асинхронно.
+      res.status(200).send('EVENT_RECEIVED');
+
+    } else {
+      // Если это не Instagram (например, Facebook Messenger)
+      res.sendStatus(404);
+    }
+  });
+
+  // --- ШАГ 3: ЛОГИКА БОТА И ОТПРАВКА ОТВЕТА ---
+
+  // Глобальный объект для хранения "корзин" (временное решение)
+  // { 'USER_ID': { cart: [...] } }
+  const igUserSessions = new Map();
+
+  // Обработчик логики
+  async function handleInstagramMessage(event) {
+    const senderId = event.sender.id; // Уникальный ID пользователя в Instagram
+    const messageText = event.message.text.toLowerCase().trim();
+
+    // Получаем сессию пользователя (или создаем новую)
+    if (!igUserSessions.has(senderId)) {
+      igUserSessions.set(senderId, { cart: [] });
+    }
+    const session = igUserSessions.get(senderId);
+
+    // --- ЛОГИКА МЕНЮ (как в Telegram-боте) ---
+    if (messageText === 'menu' || messageText === '/menu') {
+      try {
+        await sendInstagramMessage(senderId, 'Загружаю меню...');
+
+        const categories = await prisma.productCategory.findMany({
+          include: { products: true }
+        });
+
+        if (categories.length === 0) {
+          return await sendInstagramMessage(senderId, 'Извините, наше меню сейчас пустое.');
+        }
+
+        for (const category of categories) {
+          await sendInstagramMessage(senderId, `<b>${category.name}</b>`);
+          
+          for (const product of category.products) {
+            const productText = `${product.name} - ${product.price}€\n${product.description || ''}`;
+            
+            // В Instagram мы не можем слать "inline-кнопки" с фото, как в TG.
+            // Мы шлем "Quick Replies" (быстрые ответы).
+            const quickReplies = [{
+              content_type: 'text',
+              title: `Добавить: ${product.name}`,
+              // "payload" - это то, что бот получит, когда юзер нажмет кнопку
+              payload: `ADD_TO_CART_${product.id}`, 
+            }];
+            
+            await sendInstagramMessage(senderId, productText, quickReplies);
+          }
+        }
+      } catch (e) {
+        console.error("Ошибка загрузки IG меню:", e);
+        await sendInstagramMessage(senderId, 'Ошибка при загрузке меню.');
+      }
+    
+    // --- ЛОГИКА ДОБАВЛЕНИЯ В КОРЗИНУ (через "payload" из кнопок) ---
+    } else if (event.message.quick_reply && event.message.quick_reply.payload.startsWith('ADD_TO_CART_')) {
+      
+      const productId = parseInt(event.message.quick_reply.payload.split('_')[3]);
+      const product = await prisma.product.findUnique({ where: { id: productId } });
+
+      if (product) {
+        session.cart.push(product);
+        await sendInstagramMessage(senderId, `✅ ${product.name} добавлен в корзину.`);
+        await sendInstagramMessage(senderId, `В корзине ${session.cart.length} поз. Напишите "cart", чтобы оформить.`);
+      }
+
+    // --- ЛОГИКА КОРЗИНЫ ---
+    } else if (messageText === 'cart' || messageText === '/cart') {
+      if (session.cart.length === 0) {
+        return await sendInstagramMessage(senderId, 'Ваша корзина пуста. Напишите "menu", чтобы посмотреть.');
+      }
+
+      let total = 0;
+      let cartText = '🛒 Ваша корзина:\n';
+      session.cart.forEach(p => {
+        cartText += ` - ${p.name} (${p.price}€)\n`;
+        total += p.price;
+      });
+      cartText += `\nИтого: ${total.toFixed(2)}€`;
+      await sendInstagramMessage(senderId, cartText);
+      
+      // --- АПСЕЛЛ И ОФОРМЛЕНИЕ ---
+      await sendInstagramMessage(senderId, 'Хотите что-нибудь еще?', [
+        {
+          content_type: 'text',
+          title: '🎁 Добавить Картошку Фри',
+          payload: 'UPSELL_FRIES', 
+        },
+        {
+          content_type: 'text',
+          title: '✅ Оформить заказ',
+          payload: 'CHECKOUT',
+        }
+      ]);
+    
+    // --- ЛОГИКА АПСЕЛЛА ---
+    } else if (event.message.quick_reply && event.message.quick_reply.payload === 'UPSELL_FRIES') {
+      // (здесь та же логика, что и в TG-боте: найти ID картошки, добавить в сессию)
+      await sendInstagramMessage(senderId, 'Картошка добавлена!');
+
+    // --- ЛОГИКА ОФОРМЛЕНИЯ ---
+    } else if (event.message.quick_reply && event.message.quick_reply.payload === 'CHECKOUT') {
+      
+      await sendInstagramMessage(senderId, 'Спасибо! Ваш заказ принят. Наш менеджер свяжется с вами в этом чате в течение 5 минут для подтверждения и оплаты.');
+      
+      // (Здесь мы отправляем заказ админу в Telegram)
+      const adminChatId = process.env.ADMIN_TELEGRAM_CHAT_ID;
+      if (adminChatId) {
+        try {
+          const user = await getInstagramUserProfile(senderId); // Доп. функция
+          let orderText = `<b>НОВЫЙ ЗАКАЗ (Instagram)</b>\n\n`;
+          orderText += `<b>Клиент:</b> ${user.first_name} ${user.last_name} (@${user.username})\n`;
+          orderText += `<b>ID:</b> ${senderId}\n\n<b>Заказ:</b>\n... (список корзины) ...`;
+          
+          await telegramBot.telegram.sendMessage(adminChatId, orderText, { parse_mode: 'HTML' });
+        } catch (e) { console.error('Не удалось отправить IG заказ админу в TG', e); }
+      }
+      
+      // Очищаем корзину
+      session.cart = [];
+
+    // --- "ЭХО" ПО УМОЛЧАНИЮ ---
+    } else {
+      // Отвечаем эхом на любое другое сообщение
+      await sendInstagramMessage(senderId, `Вы написали: "${messageText}". Напишите "menu", чтобы посмотреть меню.`);
+    }
+  }
+
+  // --- Вспомогательная функция для ОТПРАВКИ сообщений ---
+  async function sendInstagramMessage(recipientId, text, quickReplies = null) {
+    const messageData = {
+      recipient: {
+        id: recipientId
+      },
+      message: {
+        text: text,
+      }
+    };
+
+    // Если есть кнопки, добавляем их
+    if (quickReplies) {
+      messageData.message.quick_replies = quickReplies;
+    }
+    
+    try {
+      await axios.post(
+        'https://graph.facebook.com/v19.0/me/messages',
+        messageData,
+        {
+          params: { access_token: process.env.INSTAGRAM_PAGE_ACCESS_TOKEN }
+        }
+      );
+      console.log(`[IG Webhook] Отправлен ответ: "${text}"`);
+    } catch (error) {
+      console.error('[IG Webhook] ОШИБКА отправки ответа:', error.response ? error.response.data : error.message);
+    }
+  }
+
+  // --- Вспомогательная функция для получения данных о юзере (нужен токен) ---
+  async function getInstagramUserProfile(userId) {
+    try {
+      const response = await axios.get(
+        `https://graph.facebook.com/${userId}`,
+        {
+          params: {
+            fields: 'first_name,last_name,profile_pic,username',
+            access_token: process.env.INSTAGRAM_PAGE_ACCESS_TOKEN
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка получения профиля IG:', error.response ? error.response.data : error.message);
+      return { first_name: 'Клиент', last_name: 'Instagram' };
+    }
+  }
+  
+  // (Нужна переменная telegramBot из блока Telegram. 
+  // Убедись, что 'bot' из Telegraf объявлен глобально в блоке 'else')
+  // ... код ниже предполагает, что 'bot' доступен как 'telegramBot'
+  let telegramBot; // Объявим здесь
+  if (process.env.TELEGRAM_BOT_TOKEN) {
+    // ... твой код Telegraf
+    telegramBot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+    // ... (вся настройка Telegraf)
+    // Убедись, что 'telegramBot' присваивается инстанс Telegraf
+  }
+
+
+} else {
+  console.warn('⚠️  Instagram бот НЕ запущен. Не хватает переменных окружения (INSTAGRAM_VERIFY_TOKEN, INSTAGRAM_APP_SECRET, INSTAGRAM_PAGE_ACCESS_TOKEN).');
+}
+// ----------------------------------------------------------------
+// --- КОНЕЦ БЭКЕНДА ДЛЯ INSTAGRAM БОТА ---
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

@@ -21,7 +21,7 @@ export default defineConfig({
     strictPort: false,
     proxy: {
       "/api": "http://127.0.0.1:3000",
-      target: 'http://localhost:8080', // <-- Укажите порт, на котором у вас ЛОКАЛЬНО запускается server.ts (может быть 8080, 5000, и т.д.)
+      // <-- Укажите порт, на котором у вас ЛОКАЛЬНО запускается server.ts (может быть 8080, 5000, и т.д.)
       
     },
     
@@ -32,3 +32,38 @@ export default defineConfig({
     port: 5191,
   },
 });
+
+// Файл: frontend/vite.config.ts
+
+//... (другие настройки, например import)
+
+// export default defineConfig({
+//   base: "./",
+//   plugins: [react(), tailwindcss()],
+//   resolve: {
+//     alias: {
+//       "@": path.resolve(__dirname, "./src"),
+//     },
+//   },
+//   server: {
+//     // Слушаем только localhost
+//     host: '127.0.0.1',
+//     port: 8000,
+//     strictPort: false,
+    
+//     // --- ПРАВИЛЬНАЯ КОНФИГУРАЦИЯ ПРОКСИ ---
+//     proxy: {
+//       '/api': {
+//         target: 'http://127.0.0.1:3000', // Адрес вашего backend (server.js)
+//         changeOrigin: true, // Необходимо для корректной работы
+//         secure: false, // Можно оставить false для http
+//       }
+//     }
+//     // --- КОНЕЦ ПРАВИЛЬНОЙ КОНФИГУРАЦИИ ---
+//   },
+  
+//   preview: {
+//     host: true,
+//     port: 5191,
+//   },
+// });

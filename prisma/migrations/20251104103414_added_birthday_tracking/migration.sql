@@ -1,0 +1,1 @@
+ALTER TABLE "Customer" ADD COLUMN "lastBirthdayGreetingSent" TIMESTAMP(3);
