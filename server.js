@@ -2267,105 +2267,97 @@ app.post('/api/export-to-sheets', authenticateSession, async (req, res) => {
   }
 });
 
-const sendBirthdayGreetings = async () => {
-  console.log('🎉 [Cron Job] Запуск проверки Дней Рождения...');
-  
-  const sendgridApiKey = process.env.SENDGRID_API_KEY?.replace(/^['"]|['"]$/g, '')?.trim();
-  const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL?.replace(/^['"]|['"]$/g, '')?.trim();
-  const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM_NUMBER;
+// В файле server.js
+
+async function checkAndSendBirthdayEmails() {
+  console.log('Проверка необходимости запуска sendBirthdayEmails...');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const startOfDay = new Date(today);
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
 
   try {
-    const allCustomers = await prisma.customer.findMany({
+    // 1. Получаем список клиентов
+    const customers = await prisma.customer.findMany({
       where: {
-        birthDate: {
-          not: {
-            equals: null // "не равно null"
-          },}
-        // isEmailVerified: true // (Опционально) Отправлять только верифицированным
-      }
-    });
-
-    const today = new Date();
-    const todayMonth = today.getMonth() + 1; // getMonth() 0-11
-    const todayDay = today.getDate();
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-
-
-    console.log(`[Cron Job] Сегодня: ${todayDay}/${todayMonth}. Проверяем ${allCustomers.length} клиентов.`);
-
-    const birthdayCustomers = allCustomers.filter(customer => {
-      if (!customer.birthDate) return false;
-      const birthDate = new Date(customer.birthDate);
-      const birthMonth = birthDate.getMonth() + 1;
-      const birthDay = birthDate.getDate();
-
-      const isBirthday = birthMonth === todayMonth && birthDay === todayDay;
-      const notCongratulatedToday = !customer.lastBirthdayGreetingSent || customer.lastBirthdayGreetingSent < startOfToday;
-
-      return birthMonth === todayMonth && birthDay === todayDay;
-    });
-
-    if (birthdayCustomers.length === 0) {
-      console.log('🎉 [Cron Job] Сегодня нет именинников.');
-      return;
-    }
-
-    console.log(`🎉 [Cron Job] Найдено именинников: ${birthdayCustomers.length}`);
-
-    // Текст поздравления
-    const birthdaySubject = 'С Днём Рождения от Sushi Icon!';
-    const birthdayBodyText = 'С Днём Рождения! Наша команда поздравляет вас и дарит -15% на сет и сюрприз в подарок!';
-    const birthdayBodyHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #0ABAB5;">SUSHI ICON</h2>
-        <h3 style="color: #333;">С Днём Рождения, ${"Имя"}!</h3>
-        <p>Наша команда от всей души поздравляет вас с этим замечательным днём!</p>
-        <p>Мы дарим вам <strong>скидку -15% на любой сет</strong> и <strong>сюрприз в подарок</strong> к вашему заказу.</p>
-        <p style="color: #666; font-size: 14px;">Воспользуйтесь вашим подарком в ближайшее время!</p>
-        <p style="color: #666; font-size: 12px; margin-top: 30px;">С наилучшими пожеланиями, команда Sushi Icon.</p>
-      </div>
-    `;
-
-    for (const customer of birthdayCustomers) {
-      console.log(`[Cron Job] Отправка поздравления для ${customer.email} / ${customer.phoneNumber}`);
-      
-      // 1. Отправка Email
-      if (customer.email && sendgridApiKey && sendgridFromEmail) {
-        try {
-          let finalHtml = birthdayBodyHtml.replace('${"Имя"}', customer.firstName || "дорогой клиент");
-          const msg = {
-            to: customer.email,
-            from: sendgridFromEmail,
-            subject: birthdaySubject,
-            text: birthdayBodyText,
-            html: birthdayBodyHtml.replace("${","}", customer.firstName || "дорогой клиент"),
-          };
-          await sgMail.send(msg);
-          console.log(`  ✅ Email отправлен на ${customer.email}`);
-        } catch (emailError) {
-          console.error(`  ❌ Ошибка Email для ${customer.email}:`, emailError.message);
+        birthday: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        isBirthdayEmailSent: false,
+        email: {
+          not: null,
+          contains: '@'
         }
-      }
+      },
+    });
+    
+    console.log(`Найдено ${customers.length} клиентов с днем рождения сегодня.`);
 
-      // 2. Отправка WhatsApp
-      if (customer.phoneNumber && twilioClient && whatsappFrom) {
-        try {
+    // 2. Проходим по каждому клиенту в цикле
+    for (const customer of customers) {
+      
+      // 3. Отправляем письмо с индивидуальной обработкой ошибок
+      try {
+        console.log(`Отправка письма клиенту: ${customer.email}`);
+        
+        const msg = {
+          to: customer.email,
+          from: {
+            name: 'Sushi Icon', // Имя отправителя
+            email: process.env.SENDGRID_FROM_EMAIL // Email, с которого отправляем
+          },
+          // ВАЖНО: Эта тема будет видна, только если шаблон ее не переопределяет
+          subject: 'Gefeliciteerd met je verjaardag! 🎉🍣', 
+          
+          // Используем ID шаблона из SendGrid
+          templateId: process.env.SENDGRID_BIRTHDAY_TEMPLATE_ID, 
+          
+          // Данные, которые передаются в шаблон (например, {{name}})
+          dynamicTemplateData: {
+            name: customer.name || 'klant', // Передаем имя клиента в шаблон
+          },
+        };
+
+        // Отправляем письмо
+        await sendGridMail.send(msg);
+        
+        // Обновляем статус, только если письмо УСПЕШНО отправлено
         await prisma.customer.update({
           where: { id: customer.id },
-          data: { lastBirthdayGreetingSent: new Date() } // Ставим ТЕКУЩЕЕ время
+          data: { isBirthdayEmailSent: true },
         });
-        console.log(`  [Cron Job] Клиент ${customer.id} помечен как поздравленный.`);
-      } catch (updateError) {
-        console.error(`  ❌ Ошибка обновления lastBirthdayGreetingSent для ${customer.id}:`, updateError.message);
-      }
-      }
-    }
 
-  } catch (error) {
-    console.error('❌ [Cron Job] Критическая ошибка при проверке Дней Рождения:', error);
+        console.log(`Письмо отправлено и статус обновлен для: ${customer.email}`);
+
+      } catch (emailError) {
+        // 4. Если отправка ОДНОМУ клиенту не удалась, логируем ошибку и ПРОДОЛЖАЕМ цикл
+        console.error(`Ошибка при отправке письма клиенту ${customer.email}:`, emailError.message);
+      }
+    } // Конец цикла for
+
+  } catch (dbError) {
+    // 5. Этот catch поймает только критическую ошибку (например, если не удалось найти клиентов)
+    console.error('Критическая ошибка при поиске клиентов в checkAndSendBirthdayEmails:', dbError);
   }
-};
+}
+    // // Текст поздравления
+    // const birthdaySubject = 'С Днём Рождения от Sushi Icon!';
+    // const birthdayBodyText = 'С Днём Рождения! Наша команда поздравляет вас и дарит -15% на сет и сюрприз в подарок!';
+    // const birthdayBodyHtml = `
+    //   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    //     <h2 style="color: #0ABAB5;">SUSHI ICON</h2>
+    //     <h3 style="color: #333;">С Днём Рождения, ${"Имя"}!</h3>
+    //     <p>Наша команда от всей души поздравляет вас с этим замечательным днём!</p>
+    //     <p>Мы дарим вам <strong>скидку -15% на любой сет</strong> и <strong>сюрприз в подарок</strong> к вашему заказу.</p>
+    //     <p style="color: #666; font-size: 14px;">Воспользуйтесь вашим подарком в ближайшее время!</p>
+    //     <p style="color: #666; font-size: 12px; margin-top: 30px;">С наилучшими пожеланиями, команда Sushi Icon.</p>
+    //   </div>
+    // `;
+
+  
 
 // Запускаем проверку каждые 6 часов (21600000 мс)
 setInterval(sendBirthdayGreetings, 24 * 60 * 60 * 1000);
