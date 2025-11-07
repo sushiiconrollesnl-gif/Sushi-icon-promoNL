@@ -144,3 +144,22 @@ enum DeliveryStatus {
   SENT
   FAILED
 }
+
+model ProductCategory {
+  id       String    @id @default(cuid())
+  name     String
+  products Product[]
+}
+
+model Product {
+  id          Int             @id @default(autoincrement()) // Or String @default(cuid())
+  name        String
+  description String?
+  price       Float
+  categoryId  String
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime        @default(now())
+
+  // You might need to adjust this based on your bot logic
+  // e.g., if you use 'friesId' in the upsell
+}

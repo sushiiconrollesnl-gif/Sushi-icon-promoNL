@@ -1425,7 +1425,7 @@ app.post("/api/form-draft", async (req, res) => {
           lastName: draftData.lastName || null,
           phoneNumber: draftData.phoneNumber || null,
           email: draftData.email || null,
-          birthDate: draftData.birthDate,
+          birthDate: birthDateObj,
           city: draftData.city || null,
           street: draftData.street || null,
           postalCode: draftData.postalCode || null,
