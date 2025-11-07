@@ -139,7 +139,8 @@ exports.Prisma.CustomerScalarFieldEnum = {
   updatedAt: 'updatedAt',
   emailVerificationCode: 'emailVerificationCode',
   isEmailVerified: 'isEmailVerified',
-  lastBirthdayGreetingSent: 'lastBirthdayGreetingSent'
+  lastBirthdayGreetingSent: 'lastBirthdayGreetingSent',
+  marketingConsent: 'marketingConsent'
 };
 
 exports.Prisma.OwnerScalarFieldEnum = {
@@ -238,7 +239,8 @@ exports.Prisma.FormDraftScalarFieldEnum = {
   preferredFood: 'preferredFood',
   feedback: 'feedback',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  birthDate: 'birthDate'
 };
 
 exports.Prisma.SortOrder = {

@@ -1389,14 +1389,14 @@ app.post("/api/form-draft", async (req, res) => {
   try {
     const draftData = req.body;
     const draftId = draftData.draftId;
-    let birthDateObj = null;
+    let birthDateObj = null; // По умолчанию null
     if (draftData.birthDate) {
       const parsedDate = new Date(draftData.birthDate);
-  // Проверяем, что дата валидная
-     if (!isNaN(parsedDate.getTime())) {
-    birthDateObj = parsedDate;
+      // Проверяем, что дата валидная
+      if (!isNaN(parsedDate.getTime())) {
+        birthDateObj = parsedDate;
+      }
     }
-  }
     if (draftId) {
       // Обновляем существующий черновик
       await prisma.formDraft.update({

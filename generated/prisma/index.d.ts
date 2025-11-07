@@ -1577,6 +1577,7 @@ export namespace Prisma {
     emailVerificationCode: string | null
     isEmailVerified: boolean | null
     lastBirthdayGreetingSent: Date | null
+    marketingConsent: boolean | null
   }
 
   export type CustomerMaxAggregateOutputType = {
@@ -1599,6 +1600,7 @@ export namespace Prisma {
     emailVerificationCode: string | null
     isEmailVerified: boolean | null
     lastBirthdayGreetingSent: Date | null
+    marketingConsent: boolean | null
   }
 
   export type CustomerCountAggregateOutputType = {
@@ -1621,6 +1623,7 @@ export namespace Prisma {
     emailVerificationCode: number
     isEmailVerified: number
     lastBirthdayGreetingSent: number
+    marketingConsent: number
     _all: number
   }
 
@@ -1645,6 +1648,7 @@ export namespace Prisma {
     emailVerificationCode?: true
     isEmailVerified?: true
     lastBirthdayGreetingSent?: true
+    marketingConsent?: true
   }
 
   export type CustomerMaxAggregateInputType = {
@@ -1667,6 +1671,7 @@ export namespace Prisma {
     emailVerificationCode?: true
     isEmailVerified?: true
     lastBirthdayGreetingSent?: true
+    marketingConsent?: true
   }
 
   export type CustomerCountAggregateInputType = {
@@ -1689,6 +1694,7 @@ export namespace Prisma {
     emailVerificationCode?: true
     isEmailVerified?: true
     lastBirthdayGreetingSent?: true
+    marketingConsent?: true
     _all?: true
   }
 
@@ -1784,6 +1790,7 @@ export namespace Prisma {
     emailVerificationCode: string | null
     isEmailVerified: boolean
     lastBirthdayGreetingSent: Date | null
+    marketingConsent: boolean
     _count: CustomerCountAggregateOutputType | null
     _min: CustomerMinAggregateOutputType | null
     _max: CustomerMaxAggregateOutputType | null
@@ -1823,6 +1830,7 @@ export namespace Prisma {
     emailVerificationCode?: boolean
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: boolean
+    marketingConsent?: boolean
     subscriptions?: boolean | Customer$subscriptionsArgs<ExtArgs>
     _count?: boolean | CustomerCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["customer"]>
@@ -1847,6 +1855,7 @@ export namespace Prisma {
     emailVerificationCode?: boolean
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: boolean
+    marketingConsent?: boolean
   }, ExtArgs["result"]["customer"]>
 
   export type CustomerSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -1869,6 +1878,7 @@ export namespace Prisma {
     emailVerificationCode?: boolean
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: boolean
+    marketingConsent?: boolean
   }, ExtArgs["result"]["customer"]>
 
   export type CustomerSelectScalar = {
@@ -1891,9 +1901,10 @@ export namespace Prisma {
     emailVerificationCode?: boolean
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: boolean
+    marketingConsent?: boolean
   }
 
-  export type CustomerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "firstName" | "lastName" | "phoneNumber" | "email" | "birthDate" | "city" | "street" | "postalCode" | "houseNumber" | "preferredFood" | "feedback" | "country" | "discountCode" | "createdAt" | "updatedAt" | "emailVerificationCode" | "isEmailVerified" | "lastBirthdayGreetingSent", ExtArgs["result"]["customer"]>
+  export type CustomerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "firstName" | "lastName" | "phoneNumber" | "email" | "birthDate" | "city" | "street" | "postalCode" | "houseNumber" | "preferredFood" | "feedback" | "country" | "discountCode" | "createdAt" | "updatedAt" | "emailVerificationCode" | "isEmailVerified" | "lastBirthdayGreetingSent" | "marketingConsent", ExtArgs["result"]["customer"]>
   export type CustomerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     subscriptions?: boolean | Customer$subscriptionsArgs<ExtArgs>
     _count?: boolean | CustomerCountOutputTypeDefaultArgs<ExtArgs>
@@ -1926,6 +1937,7 @@ export namespace Prisma {
       emailVerificationCode: string | null
       isEmailVerified: boolean
       lastBirthdayGreetingSent: Date | null
+      marketingConsent: boolean
     }, ExtArgs["result"]["customer"]>
     composites: {}
   }
@@ -2369,6 +2381,7 @@ export namespace Prisma {
     readonly emailVerificationCode: FieldRef<"Customer", 'String'>
     readonly isEmailVerified: FieldRef<"Customer", 'Boolean'>
     readonly lastBirthdayGreetingSent: FieldRef<"Customer", 'DateTime'>
+    readonly marketingConsent: FieldRef<"Customer", 'Boolean'>
   }
     
 
@@ -8768,6 +8781,7 @@ export namespace Prisma {
     feedback: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    birthDate: Date | null
   }
 
   export type FormDraftMaxAggregateOutputType = {
@@ -8785,6 +8799,7 @@ export namespace Prisma {
     feedback: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    birthDate: Date | null
   }
 
   export type FormDraftCountAggregateOutputType = {
@@ -8802,6 +8817,7 @@ export namespace Prisma {
     feedback: number
     createdAt: number
     updatedAt: number
+    birthDate: number
     _all: number
   }
 
@@ -8821,6 +8837,7 @@ export namespace Prisma {
     feedback?: true
     createdAt?: true
     updatedAt?: true
+    birthDate?: true
   }
 
   export type FormDraftMaxAggregateInputType = {
@@ -8838,6 +8855,7 @@ export namespace Prisma {
     feedback?: true
     createdAt?: true
     updatedAt?: true
+    birthDate?: true
   }
 
   export type FormDraftCountAggregateInputType = {
@@ -8855,6 +8873,7 @@ export namespace Prisma {
     feedback?: true
     createdAt?: true
     updatedAt?: true
+    birthDate?: true
     _all?: true
   }
 
@@ -8945,6 +8964,7 @@ export namespace Prisma {
     feedback: string | null
     createdAt: Date
     updatedAt: Date
+    birthDate: Date | null
     _count: FormDraftCountAggregateOutputType | null
     _min: FormDraftMinAggregateOutputType | null
     _max: FormDraftMaxAggregateOutputType | null
@@ -8979,6 +8999,7 @@ export namespace Prisma {
     feedback?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    birthDate?: boolean
   }, ExtArgs["result"]["formDraft"]>
 
   export type FormDraftSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -8996,6 +9017,7 @@ export namespace Prisma {
     feedback?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    birthDate?: boolean
   }, ExtArgs["result"]["formDraft"]>
 
   export type FormDraftSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -9013,6 +9035,7 @@ export namespace Prisma {
     feedback?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    birthDate?: boolean
   }, ExtArgs["result"]["formDraft"]>
 
   export type FormDraftSelectScalar = {
@@ -9030,9 +9053,10 @@ export namespace Prisma {
     feedback?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    birthDate?: boolean
   }
 
-  export type FormDraftOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "firstName" | "lastName" | "phoneNumber" | "email" | "city" | "street" | "postalCode" | "houseNumber" | "country" | "preferredFood" | "feedback" | "createdAt" | "updatedAt", ExtArgs["result"]["formDraft"]>
+  export type FormDraftOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "firstName" | "lastName" | "phoneNumber" | "email" | "city" | "street" | "postalCode" | "houseNumber" | "country" | "preferredFood" | "feedback" | "createdAt" | "updatedAt" | "birthDate", ExtArgs["result"]["formDraft"]>
 
   export type $FormDraftPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "FormDraft"
@@ -9052,6 +9076,7 @@ export namespace Prisma {
       feedback: string | null
       createdAt: Date
       updatedAt: Date
+      birthDate: Date | null
     }, ExtArgs["result"]["formDraft"]>
     composites: {}
   }
@@ -9489,6 +9514,7 @@ export namespace Prisma {
     readonly feedback: FieldRef<"FormDraft", 'String'>
     readonly createdAt: FieldRef<"FormDraft", 'DateTime'>
     readonly updatedAt: FieldRef<"FormDraft", 'DateTime'>
+    readonly birthDate: FieldRef<"FormDraft", 'DateTime'>
   }
     
 
@@ -9888,7 +9914,8 @@ export namespace Prisma {
     updatedAt: 'updatedAt',
     emailVerificationCode: 'emailVerificationCode',
     isEmailVerified: 'isEmailVerified',
-    lastBirthdayGreetingSent: 'lastBirthdayGreetingSent'
+    lastBirthdayGreetingSent: 'lastBirthdayGreetingSent',
+    marketingConsent: 'marketingConsent'
   };
 
   export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typeof CustomerScalarFieldEnum]
@@ -10005,7 +10032,8 @@ export namespace Prisma {
     preferredFood: 'preferredFood',
     feedback: 'feedback',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    birthDate: 'birthDate'
   };
 
   export type FormDraftScalarFieldEnum = (typeof FormDraftScalarFieldEnum)[keyof typeof FormDraftScalarFieldEnum]
@@ -10143,6 +10171,7 @@ export namespace Prisma {
     emailVerificationCode?: StringNullableFilter<"Customer"> | string | null
     isEmailVerified?: BoolFilter<"Customer"> | boolean
     lastBirthdayGreetingSent?: DateTimeNullableFilter<"Customer"> | Date | string | null
+    marketingConsent?: BoolFilter<"Customer"> | boolean
     subscriptions?: MessageSubscriptionListRelationFilter
   }
 
@@ -10166,6 +10195,7 @@ export namespace Prisma {
     emailVerificationCode?: SortOrderInput | SortOrder
     isEmailVerified?: SortOrder
     lastBirthdayGreetingSent?: SortOrderInput | SortOrder
+    marketingConsent?: SortOrder
     subscriptions?: MessageSubscriptionOrderByRelationAggregateInput
   }
 
@@ -10192,6 +10222,7 @@ export namespace Prisma {
     emailVerificationCode?: StringNullableFilter<"Customer"> | string | null
     isEmailVerified?: BoolFilter<"Customer"> | boolean
     lastBirthdayGreetingSent?: DateTimeNullableFilter<"Customer"> | Date | string | null
+    marketingConsent?: BoolFilter<"Customer"> | boolean
     subscriptions?: MessageSubscriptionListRelationFilter
   }, "id" | "phoneNumber" | "discountCode">
 
@@ -10215,6 +10246,7 @@ export namespace Prisma {
     emailVerificationCode?: SortOrderInput | SortOrder
     isEmailVerified?: SortOrder
     lastBirthdayGreetingSent?: SortOrderInput | SortOrder
+    marketingConsent?: SortOrder
     _count?: CustomerCountOrderByAggregateInput
     _max?: CustomerMaxOrderByAggregateInput
     _min?: CustomerMinOrderByAggregateInput
@@ -10243,6 +10275,7 @@ export namespace Prisma {
     emailVerificationCode?: StringNullableWithAggregatesFilter<"Customer"> | string | null
     isEmailVerified?: BoolWithAggregatesFilter<"Customer"> | boolean
     lastBirthdayGreetingSent?: DateTimeNullableWithAggregatesFilter<"Customer"> | Date | string | null
+    marketingConsent?: BoolWithAggregatesFilter<"Customer"> | boolean
   }
 
   export type OwnerWhereInput = {
@@ -10756,6 +10789,7 @@ export namespace Prisma {
     feedback?: StringNullableFilter<"FormDraft"> | string | null
     createdAt?: DateTimeFilter<"FormDraft"> | Date | string
     updatedAt?: DateTimeFilter<"FormDraft"> | Date | string
+    birthDate?: DateTimeNullableFilter<"FormDraft"> | Date | string | null
   }
 
   export type FormDraftOrderByWithRelationInput = {
@@ -10773,6 +10807,7 @@ export namespace Prisma {
     feedback?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    birthDate?: SortOrderInput | SortOrder
   }
 
   export type FormDraftWhereUniqueInput = Prisma.AtLeast<{
@@ -10793,6 +10828,7 @@ export namespace Prisma {
     feedback?: StringNullableFilter<"FormDraft"> | string | null
     createdAt?: DateTimeFilter<"FormDraft"> | Date | string
     updatedAt?: DateTimeFilter<"FormDraft"> | Date | string
+    birthDate?: DateTimeNullableFilter<"FormDraft"> | Date | string | null
   }, "id">
 
   export type FormDraftOrderByWithAggregationInput = {
@@ -10810,6 +10846,7 @@ export namespace Prisma {
     feedback?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    birthDate?: SortOrderInput | SortOrder
     _count?: FormDraftCountOrderByAggregateInput
     _max?: FormDraftMaxOrderByAggregateInput
     _min?: FormDraftMinOrderByAggregateInput
@@ -10833,6 +10870,7 @@ export namespace Prisma {
     feedback?: StringNullableWithAggregatesFilter<"FormDraft"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"FormDraft"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"FormDraft"> | Date | string
+    birthDate?: DateTimeNullableWithAggregatesFilter<"FormDraft"> | Date | string | null
   }
 
   export type CustomerCreateInput = {
@@ -10855,6 +10893,7 @@ export namespace Prisma {
     emailVerificationCode?: string | null
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: Date | string | null
+    marketingConsent?: boolean
     subscriptions?: MessageSubscriptionCreateNestedManyWithoutCustomerInput
   }
 
@@ -10878,6 +10917,7 @@ export namespace Prisma {
     emailVerificationCode?: string | null
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: Date | string | null
+    marketingConsent?: boolean
     subscriptions?: MessageSubscriptionUncheckedCreateNestedManyWithoutCustomerInput
   }
 
@@ -10901,6 +10941,7 @@ export namespace Prisma {
     emailVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     isEmailVerified?: BoolFieldUpdateOperationsInput | boolean
     lastBirthdayGreetingSent?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    marketingConsent?: BoolFieldUpdateOperationsInput | boolean
     subscriptions?: MessageSubscriptionUpdateManyWithoutCustomerNestedInput
   }
 
@@ -10924,6 +10965,7 @@ export namespace Prisma {
     emailVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     isEmailVerified?: BoolFieldUpdateOperationsInput | boolean
     lastBirthdayGreetingSent?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    marketingConsent?: BoolFieldUpdateOperationsInput | boolean
     subscriptions?: MessageSubscriptionUncheckedUpdateManyWithoutCustomerNestedInput
   }
 
@@ -10947,6 +10989,7 @@ export namespace Prisma {
     emailVerificationCode?: string | null
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: Date | string | null
+    marketingConsent?: boolean
   }
 
   export type CustomerUpdateManyMutationInput = {
@@ -10969,6 +11012,7 @@ export namespace Prisma {
     emailVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     isEmailVerified?: BoolFieldUpdateOperationsInput | boolean
     lastBirthdayGreetingSent?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    marketingConsent?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type CustomerUncheckedUpdateManyInput = {
@@ -10991,6 +11035,7 @@ export namespace Prisma {
     emailVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     isEmailVerified?: BoolFieldUpdateOperationsInput | boolean
     lastBirthdayGreetingSent?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    marketingConsent?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type OwnerCreateInput = {
@@ -11590,6 +11635,7 @@ export namespace Prisma {
     feedback?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    birthDate?: Date | string | null
   }
 
   export type FormDraftUncheckedCreateInput = {
@@ -11607,6 +11653,7 @@ export namespace Prisma {
     feedback?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    birthDate?: Date | string | null
   }
 
   export type FormDraftUpdateInput = {
@@ -11624,6 +11671,7 @@ export namespace Prisma {
     feedback?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type FormDraftUncheckedUpdateInput = {
@@ -11641,6 +11689,7 @@ export namespace Prisma {
     feedback?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type FormDraftCreateManyInput = {
@@ -11658,6 +11707,7 @@ export namespace Prisma {
     feedback?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    birthDate?: Date | string | null
   }
 
   export type FormDraftUpdateManyMutationInput = {
@@ -11675,6 +11725,7 @@ export namespace Prisma {
     feedback?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type FormDraftUncheckedUpdateManyInput = {
@@ -11692,6 +11743,7 @@ export namespace Prisma {
     feedback?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -11786,6 +11838,7 @@ export namespace Prisma {
     emailVerificationCode?: SortOrder
     isEmailVerified?: SortOrder
     lastBirthdayGreetingSent?: SortOrder
+    marketingConsent?: SortOrder
   }
 
   export type CustomerMaxOrderByAggregateInput = {
@@ -11808,6 +11861,7 @@ export namespace Prisma {
     emailVerificationCode?: SortOrder
     isEmailVerified?: SortOrder
     lastBirthdayGreetingSent?: SortOrder
+    marketingConsent?: SortOrder
   }
 
   export type CustomerMinOrderByAggregateInput = {
@@ -11830,6 +11884,7 @@ export namespace Prisma {
     emailVerificationCode?: SortOrder
     isEmailVerified?: SortOrder
     lastBirthdayGreetingSent?: SortOrder
+    marketingConsent?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -12303,6 +12358,7 @@ export namespace Prisma {
     feedback?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    birthDate?: SortOrder
   }
 
   export type FormDraftMaxOrderByAggregateInput = {
@@ -12320,6 +12376,7 @@ export namespace Prisma {
     feedback?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    birthDate?: SortOrder
   }
 
   export type FormDraftMinOrderByAggregateInput = {
@@ -12337,6 +12394,7 @@ export namespace Prisma {
     feedback?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    birthDate?: SortOrder
   }
 
   export type MessageSubscriptionCreateNestedManyWithoutCustomerInput = {
@@ -13079,6 +13137,7 @@ export namespace Prisma {
     emailVerificationCode?: string | null
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: Date | string | null
+    marketingConsent?: boolean
   }
 
   export type CustomerUncheckedCreateWithoutSubscriptionsInput = {
@@ -13101,6 +13160,7 @@ export namespace Prisma {
     emailVerificationCode?: string | null
     isEmailVerified?: boolean
     lastBirthdayGreetingSent?: Date | string | null
+    marketingConsent?: boolean
   }
 
   export type CustomerCreateOrConnectWithoutSubscriptionsInput = {
@@ -13170,6 +13230,7 @@ export namespace Prisma {
     emailVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     isEmailVerified?: BoolFieldUpdateOperationsInput | boolean
     lastBirthdayGreetingSent?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    marketingConsent?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type CustomerUncheckedUpdateWithoutSubscriptionsInput = {
@@ -13192,6 +13253,7 @@ export namespace Prisma {
     emailVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     isEmailVerified?: BoolFieldUpdateOperationsInput | boolean
     lastBirthdayGreetingSent?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    marketingConsent?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type MessageDeliveryCreateWithoutMessageInput = {

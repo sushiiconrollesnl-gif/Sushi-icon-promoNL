@@ -29,6 +29,7 @@ model Customer {
   isEmailVerified          Boolean               @default(false)
   lastBirthdayGreetingSent DateTime?
   subscriptions            MessageSubscription[]
+  marketingConsent         Boolean               @default(false)
 }
 
 model Owner {
@@ -121,7 +122,7 @@ model OwnerLoginSession {
 }
 
 model FormDraft {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   firstName     String?
   lastName      String?
   phoneNumber   String?
@@ -133,8 +134,9 @@ model FormDraft {
   country       String?
   preferredFood String?
   feedback      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  birthDate     DateTime?
 }
 
 enum DeliveryStatus {
