@@ -248,7 +248,7 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className, maxWidth 
           particle.pos.x = randomPos.x;
           particle.pos.y = randomPos.y;
 
-          particle.maxSpeed = Math.random() * 2 + 2;
+          particle.maxSpeed = Math.random() * 8 + 8 ;
           particle.maxForce = particle.maxSpeed * 0.04;
           particle.particleSize = Math.random() * 6 + 4;
           particle.colorBlendRate = Math.random() * 0.04 + 0.008;
@@ -329,7 +329,7 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className, maxWidth 
     
     if (animationPhaseRef.current === 'assembled') {
       // Частицы собраны, ждем 3 секунды, затем начинаем рассыпание
-      if (phaseFrameCountRef.current >= 240) {
+      if (phaseFrameCountRef.current >= 420) {
         animationPhaseRef.current = 'exploding';
         phaseFrameCountRef.current = 0;
         // Рассыпаем все частицы
@@ -345,7 +345,7 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className, maxWidth 
       }
     } else if (animationPhaseRef.current === 'scattered') {
       // Частицы рассыпаны, ждем 1.5 секунды, затем начинаем сборку
-      if (phaseFrameCountRef.current >= 120) {
+      if (phaseFrameCountRef.current >= 90) {
         animationPhaseRef.current = 'assembled';
         phaseFrameCountRef.current = 0;
         // Собираем частицы обратно в текст

@@ -2243,7 +2243,7 @@ app.post("/api/cancel-registration", async (req, res) => {
     const result = await prisma.customer.deleteMany({
       where: {
         id: customerId,
-        isEmailVerified: false, // <-- Самое важное: не даем удалить тех, кто УЖЕ в базе
+        isVerified: false, // <-- Самое важное: не даем удалить тех, кто УЖЕ в базе
       },
     });
 

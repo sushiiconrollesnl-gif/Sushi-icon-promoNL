@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next'; 
-import brandLogoImage from '../assets/sushi-icon-logo.svg';
+import brandLogoImage from '../assets/new_sushi_logo.jpg';
 // --- (Интерфейсы Customer, LoginSession, SyncedFormData, DeviceInfo остаются теми же) ---
 interface Customer {
   id: string;

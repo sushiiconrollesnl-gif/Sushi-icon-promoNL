@@ -14,7 +14,7 @@ import { EnhancedAdminPanel } from './components/EnhancedAdminPanel';
 import NetherlandsAddressInput from "./components/NetherlandsAddressInput";
 import AccessDenied from "./components/AccessDenied";
 import AuroraCanvas from "./components/ui/ambient-aurora";
-import brandLogoImage from './assets/sushi-icon-logo.svg';
+import brandLogoImage from './assets/new_sushi_logo.jpg';
 
 // --- НОВЫЙ ИМПОРТ ---
 import AdminLogin from "./components/AdminLogin"; // <-- Он у вас был, и это правильно!
