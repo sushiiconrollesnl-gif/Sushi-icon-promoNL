@@ -29,10 +29,7 @@ model Customer {
   isEmailVerified          Boolean               @default(false)
   lastBirthdayGreetingSent DateTime?
   subscriptions            MessageSubscription[]
-  <<<<<<< HEAD
-  =======
   marketingConsent         Boolean               @default(false)
-  >>>>>>> temp-fix
 }
 
 model Owner {
