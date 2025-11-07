@@ -792,7 +792,18 @@ export default function App() {
               onValidationChange={(isValid, errors) => setAddressValidation({ isValid, errors })}
               required={true}
             />
-
+            <div className="form__row" style={{ flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+            <input
+              id="marketingConsent"
+              name="marketingConsent"
+              type="checkbox"
+              checked={formState.marketingConsent}
+              onChange={(event) => handleInputChange("marketingConsent", event.target.checked)} // <-- Отправляем event.target.checked
+            />
+            <label className="form__label" htmlFor="marketingConsent" style={{ marginBottom: 0 }}>
+              {t("registration.fields.marketingConsent")} {/* <-- Не забудьте добавить этот ключ в файлы i18n */}
+            </label>
+             </div>
             <div className="form__row">
               <label className="form__label" htmlFor="preferredFood">
                 {t("registration.fields.preferredFood")} *
@@ -822,18 +833,6 @@ export default function App() {
                 disabled={isSubmitting}
               />
             </div>
-            <div className="form__row" style={{ flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
-            <input
-              id="marketingConsent"
-              name="marketingConsent"
-              type="checkbox"
-              checked={formState.marketingConsent}
-              onChange={(event) => handleInputChange("marketingConsent", event.target.checked)} // <-- Отправляем event.target.checked
-            />
-            <label className="form__label" htmlFor="marketingConsent" style={{ marginBottom: 0 }}>
-              {t("registration.fields.marketingConsent")} {/* <-- Не забудьте добавить этот ключ в файлы i18n */}
-            </label>
-          </div>
           </form>
         </section>
       </>
