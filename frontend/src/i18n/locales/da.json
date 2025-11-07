@@ -55,7 +55,8 @@
       "preferredFood": "Favorit ruller eller ønsker",
       "feedback": "Dine ønsker til os",
       "street": "Gade",
-      "postalCode": "Postnummer"
+      "postalCode": "Postnummer",
+      "marketingConsent": "Jeg accepterer at modtage markedsføringstilbud og opdateringer."
     },
     "placeholders": {
       "firstName": "F.eks. Anna",

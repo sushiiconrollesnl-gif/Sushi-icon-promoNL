@@ -55,7 +55,8 @@
       "preferredFood": "Favoriete rolls of wensen",
       "feedback": "Jouw wensen voor ons",
       "street": "Straat",
-      "postalCode": "Postcode"
+      "postalCode": "Postcode",
+      "marketingConsent": "Ik ga ermee akkoord marketingaanbiedingen en updates te ontvangen."
     },
     "placeholders": {
       "firstName": "Bijv. Anna",

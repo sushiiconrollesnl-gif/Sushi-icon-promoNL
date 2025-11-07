@@ -2299,6 +2299,8 @@ app.post('/api/export-to-sheets', authenticateSession, async (req, res) => {
 
 // В файле server.js
 
+// ... в server.js
+
 async function checkAndSendBirthdayEmails() {
   console.log('Task: Запуск checkAndSendBirthdayEmails...');
   
@@ -2307,19 +2309,16 @@ async function checkAndSendBirthdayEmails() {
   const currentDay = today.getDate();
   const startOfYear = new Date(today.getFullYear(), 0, 1);
 
-  // Проверяем, настроен ли SendGrid
-  if (!sgMail || !process.env.SENDGRID_BIRTHDAY_TEMPLATE_ID || !process.env.SENDGRID_FROM_EMAIL) {
-    console.warn('⚠️  Рассылка ко дню рождения пропущена: SendGrid (sgMail) или SENDGRID_BIRTHDAY_TEMPLATE_ID / SENDGRID_FROM_EMAIL не настроены.');
+  // --- ИСПРАВЛЕНИЕ 1: Убираем проверку SENDGRID_BIRTHDAY_TEMPLATE_ID ---
+  // Нам нужен только sgMail и email отправителя
+  if (!sgMail || !process.env.SENDGRID_FROM_EMAIL) {
+    console.warn('⚠️  Рассылка ко дню рождения пропущена: SendGrid (sgMail) или SENDGRID_FROM_EMAIL не настроены.');
     return;
   }
+  // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
 
   try {
-    // 1. Получаем список клиентов, у которых сегодня ДР,
-    //    которые дали согласие на маркетинг
-    //    И которым еще не отправляли в этом году
-
-    // ВНИМАНИЕ: Используем $queryRaw для кросс-платформенного (PostgreSQL)
-    // запроса с EXTRACT (MONTH/DAY)
+    // 1. Получаем список клиентов (логика та же)
     const customers = await prisma.$queryRaw`
       SELECT * FROM "Customer" 
       WHERE EXTRACT(MONTH FROM "birthDate") = ${currentMonth} 
@@ -2336,22 +2335,36 @@ async function checkAndSendBirthdayEmails() {
       // 3. Отправляем письмо
       try {
         console.log(`Отправка письма клиенту: ${customer.email} (ID: ${customer.id})`);
+
+        // --- ИСПРАВЛЕНИЕ 2: Используем простой HTML вместо шаблона ---
         
+        // 1. Берем тот самый HTML, который был закомментирован, и вставляем имя клиента
+        const customerName = customer.firstName || 'дорогой клиент';
+        const birthdaySubject = `С Днём Рождения, ${customerName}! 🎉🍣`;
+        const birthdayBodyHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #0ABAB5;">SUSHI ICON</h2>
+            <h3 style="color: #333;">С Днём Рождения, ${customerName}!</h3>
+            <p>Наша команда от всей души поздравляет вас с этим замечательным днём!</p>
+            <p>Мы дарим вам <strong>скидку -15% на любой сет</strong> и <strong>сюрприз в подарок</strong> к вашему заказу.</p>
+            <p style="color: #666; font-size: 14px;">Воспользуйтесь вашим подарком в ближайшее время!</p>
+            <p style="color: #666; font-size: 12px; margin-top: 30px;">С наилучшими пожеланиями, команда Sushi Icon.</p>
+          </div>
+        `;
+
+        // 2. Создаем объект сообщения
         const msg = {
           to: customer.email,
           from: {
             name: 'Sushi Icon', // Имя отправителя
             email: process.env.SENDGRID_FROM_EMAIL // Email, с которого отправляем
           },
-          subject: 'Gefeliciteerd met je verjaardag! 🎉🍣', // Тема (на всякий случай)
-          templateId: process.env.SENDGRID_BIRTHDAY_TEMPLATE_ID, 
-          dynamicTemplateData: {
-            // ИСПРАВЛЕНО: 'name' на 'firstName' (согласно schema.prisma)
-            name: customer.firstName || 'klant', 
-          },
+          subject: birthdaySubject, // Используем наш заголовок
+          html: birthdayBodyHtml,   // Используем наш HTML
+          // templateId и dynamicTemplateData больше не нужны
         };
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
 
-        // ИСПРАВЛЕНО: 'sendGridMail.send' на 'sgMail.send'
         await sgMail.send(msg); 
         
         // Обновляем статус, только если письмо УСПЕШНО отправлено
@@ -2373,8 +2386,10 @@ async function checkAndSendBirthdayEmails() {
   } catch (dbError) {
     console.error('Критическая ошибка (например, $queryRaw) в checkAndSendBirthdayEmails:', dbError);
   }
-  // --- КОНЕЦ ИСПРАВЛЕНИЙ ---
 }
+
+// Запускаем проверку (этот код у вас уже есть, не меняйте его)
+setInterval(checkAndSendBirthdayEmails, 24 * 60 * 60 * 1000);
     // // Текст поздравления
     // const birthdaySubject = 'С Днём Рождения от Sushi Icon!';
     // const birthdayBodyText = 'С Днём Рождения! Наша команда поздравляет вас и дарит -15% на сет и сюрприз в подарок!';

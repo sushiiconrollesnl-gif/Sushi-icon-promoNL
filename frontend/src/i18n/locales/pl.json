@@ -55,7 +55,8 @@
       "preferredFood": "Ulubione rolki lub życzenia",
       "feedback": "Twoje życzenia dla nas",
       "street": "Ulica",
-      "postalCode": "Kod pocztowy"
+      "postalCode": "Kod pocztowy",
+      "marketingConsent": "Wyrażam zgodę na otrzymywanie ofert marketingowych i aktualizacji."
     },
     "placeholders": {
       "firstName": "Np. Anna",

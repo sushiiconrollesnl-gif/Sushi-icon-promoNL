@@ -55,7 +55,8 @@
       "preferredFood": "Favoritrullar eller önskemål",
       "feedback": "Dina önskemål för oss",
       "street": "Gata",
-      "postalCode": "Postnummer"
+      "postalCode": "Postnummer",
+      "marketingConsent": "Jag godkänner att ta emot marknadsföringserbjudanden och uppdateringar."
     },
     "placeholders": {
       "firstName": "t.ex. Anna",

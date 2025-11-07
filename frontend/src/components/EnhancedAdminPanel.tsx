@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from './LanguageSwitcher';
+import { useTranslation } from 'react-i18next'; 
 import brandLogoImage from '../assets/sushi-icon-logo.svg';
 // --- (Интерфейсы Customer, LoginSession, SyncedFormData, DeviceInfo остаются теми же) ---
 interface Customer {
@@ -18,6 +17,7 @@ interface Customer {
   feedback?: string;
   discountCode: string;
   createdAt: string;
+  marketingConsent: boolean;
 }
 
 interface LoginSession {
@@ -944,7 +944,9 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
                 <div className="form-group">
                   <label>{t('admin.broadcast.recipients')}</label>
                   <div className="recipients-list" style={{ maxHeight: 240, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}>
-                    {customers.map(c => {
+                    {customers
+                      .filter(c => c.marketingConsent) // <-- ДОБАВЬТЕ ЭТОТ ФИЛЬТР
+                      .map(c => {
                       const disabled = (broadcastChannel==='email' && !c.email) || (broadcastChannel==='sms' && !c.phoneNumber) || (broadcastChannel==='whatsapp' && !c.phoneNumber);
                       const checked = selectedRecipients.includes(c.id);
                       return (
@@ -963,7 +965,17 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
                     })}
                   </div>
                   <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                    <button className="button button--blue" onClick={() => setSelectedRecipients(customers.filter(c => (broadcastChannel==='email' ? !!c.email : !!c.phoneNumber)).map(c => c.id))}>{t('admin.broadcast.selectAll')}</button>
+                    <button 
+                    className="button button--blue" 
+                    onClick={() => setSelectedRecipients(
+                      customers
+                        .filter(c => c.marketingConsent) // <-- ДОБАВЬТЕ ЭТОТ ФИЛЬТР
+                        .filter(c => (broadcastChannel==='email' ? !!c.email : !!c.phoneNumber))
+                        .map(c => c.id)
+                    )}
+                  >
+                    {t('admin.broadcast.selectAll')}
+                  </button>
                     <button className="button" onClick={() => setSelectedRecipients([])}>{t('admin.broadcast.clearAll')}</button>
                   </div>
                 </div>

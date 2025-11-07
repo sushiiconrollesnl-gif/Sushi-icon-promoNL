@@ -55,7 +55,8 @@
       "preferredFood": "Favorittruller eller ønsker",
       "feedback": "Dine ønsker til oss",
       "street": "Gate",
-      "postalCode": "Postnummer"
+      "postalCode": "Postnummer",
+      "marketingConsent": "Jeg samtykker i å motta markedsføringstilbud og oppdateringer."
     },
     "placeholders": {
       "firstName": "f.eks. Anna",

@@ -71,7 +71,8 @@
       "preferredFood": "Favourite rolls or wishes",
       "feedback": "Your wishes for us",
       "street": "Street",
-      "postalCode": "Postal Code"
+      "postalCode": "Postal Code",
+      "marketingConsent": "I agree to receive marketing offers and updates."
     },
     "placeholders": {
       "firstName": "e.g. Anna",
