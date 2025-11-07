@@ -816,7 +816,11 @@ app.post("/api/broadcast", async (req, res) => {
     const subscriptions = await prisma.messageSubscription.findMany({
       where: { subscribed: true },
       include: {
-        customer: true,
+        // --- ИСПРАВЛЕНИЕ 1: Учитываем согласие ---
+        customer: {
+          marketingConsent: true
+        }
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
       },
     });
 
@@ -1743,7 +1747,12 @@ app.post("/api/owner/broadcast/sms", authenticateSession, async (req, res) => {
 
     // Получаем подписки для клиентов
     const customers = await prisma.customer.findMany({
-      where: { id: { in: recipientIds } },
+      where: { 
+        id: { in: recipientIds },
+        // --- ИСПРАВЛЕНИЕ 2: Учитываем согласие ---
+        marketingConsent: true 
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+      },
       select: { id: true, phoneNumber: true },
     });
 
@@ -1837,7 +1846,12 @@ app.post("/api/owner/broadcast/email",authenticateSession, async (req, res) => {
     const { title, body, recipientIds } = targetedBroadcastSchema.parse(req.body);
 
     const customers = await prisma.customer.findMany({
-      where: { id: { in: recipientIds } },
+      where: { 
+        id: { in: recipientIds },
+        // --- ИСПРАВЛЕНИЕ 3: Учитываем согласие ---
+        marketingConsent: true
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+      },
       select: { id: true, email: true, firstName: true, lastName: true },
     });
 
@@ -1912,8 +1926,13 @@ app.post("/api/owner/broadcast/whatsapp", authenticateSession, async (req, res) 
     });
 
     // Получаем клиентов
-    const customers = await prisma.customer.findMany({
-      where: { id: { in: recipientIds } },
+   const customers = await prisma.customer.findMany({
+      where: { 
+        id: { in: recipientIds },
+        // --- ИСПРАВЛЕНИЕ 4: Учитываем согласие ---
+        marketingConsent: true
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+      },
       select: { id: true, phoneNumber: true },
     });
 
@@ -1988,7 +2007,14 @@ app.post("/api/admin/broadcast/sms-all", authenticateSession, async (req, res) =
 
     // 3. Находим всех, кто подписан
     const subscriptions = await prisma.messageSubscription.findMany({
-      where: { subscribed: true },
+      where: { 
+        subscribed: true,
+        // --- ИСПРАВЛЕНИЕ 5 (РЕШАЕТ ПУНКТ 2): Учитываем согласие ---
+        customer: {
+          marketingConsent: true
+        }
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+      },
       include: {
         customer: {
           select: { id: true, phoneNumber: true } // Выбираем только нужные поля
@@ -2092,12 +2118,14 @@ app.post("/api/admin/broadcast", authenticateSession, async (req, res) => {
     const customers = await prisma.customer.findMany({
       where: {
         id: { in: userIds },
+        // --- ИСПРАВЛЕНИЕ 6: Учитываем согласие ---
+        marketingConsent: true
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
       },
       select: {
         email: true // Выбираем только email
       }
     });
-
     // Отфильтровываем null/undefined/пустые email
     const emails = customers.map(c => c.email).filter(Boolean); 
 

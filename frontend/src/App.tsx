@@ -843,7 +843,17 @@ export default function App() {
         </div>
 
         <main className="app__main">
-          <div className="container" style={{ gap: '40px', width: '100%', maxWidth: '700px' }}>
+          <div 
+            className="container" 
+            style={{ 
+              gap: '40px', 
+              width: '100%', 
+              // --- ИСПРАВЛЕНИЕ 3: ---
+              // Увеличиваем ширину и убираем отступы, когда панель открыта
+              maxWidth: (isAdminAuthenticated && showAdminPanel) ? '95%' : '700px', 
+              padding: (isAdminAuthenticated && showAdminPanel) ? '1.5rem 0' : undefined 
+            }}
+          >
             {!showAdminLogin && !(isAdminAuthenticated && showAdminPanel) && (
               <ParticleTextEffect className="shadow-[0_28px_60px_rgba(0,84,107,0.25)]" maxWidth="700px" minHeight="320px" />
             )}
