@@ -543,7 +543,21 @@ export default function App() {
                 }}>
                   {t("registration.verify.instructions", { email: verificationData.email })}
                 </p>
-
+                {/* --- НАЧАЛО ИЗМЕНЕНИЯ --- */}
+                {/* Приписка о спаме */}
+                <p style={{
+                  textAlign: 'center',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  lineHeight: '1.4',
+                  fontWeight: '500',
+                  opacity: 0.8,
+                  marginTop: '-12px', // Немного приподнимем
+                  marginBottom: '20px'
+                }}>
+                  {t("registration.verify.spamWarning", "P.S. Please check your spam folder!")}
+                </p>
+                {/* --- КОНЕЦ ИЗМЕНЕНИЯ --- */}
                 {/* Форма */}
                 <form onSubmit={handleVerificationSubmit} autoComplete="on" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {/* Поле ввода кода */}

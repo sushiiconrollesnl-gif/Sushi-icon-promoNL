@@ -1,5 +1,5 @@
 import React from 'react';
-import logoUrl from '../assets/sushi-icon-logo.svg';
+import logoUrl from '../assets/new_sushi_logo.jpg';
 
 interface AnimatedSushiLogoProps {
   className?: string;

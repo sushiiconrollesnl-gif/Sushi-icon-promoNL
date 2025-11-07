@@ -5,7 +5,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import AccessDenied from './AccessDenied';
 import AuroraCanvas from './ui/ambient-aurora';
 import { InteractiveHoverButton } from './ui/interactive-hover-button';
-import adminLogoImage from '../2025-11-01 23.26.09.jpg';
+import adminLogoImage from '../assets/new_sushi_logo.jpg';
 
 // --- Определение API_URL ---
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -366,20 +366,21 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
                     <span style={{ position: 'relative', zIndex: 1 }}>
                       {message}
                     </span>
-                    {/* --- НАЧАЛО ИЗМЕНЕНИЯ 1 --- */}
-                     {/* Добавляем предупреждение о спаме */}
-                      {step === 'verify' && (
-                        <p style={{
-                          fontSize: '11px',
-                          color: '#ffffff',
-                          opacity: 0.8,
-                          textAlign: 'center',
-                          margin: '0 0 12px 0',
-                          animation: 'fadeInUp 0.8s ease-out 0.5s both'
-                        }}>
-                          {t('admin.login.verificationSpamWarning')}
-                        </p>
-                      )}
+                    {/* --- НАЧАЛО ИЗМЕНЕНИЯ --- */}
+            {/* Добавляем предупреждение о спаме (ПЕРЕМЕЩЕНО СЮДА) */}
+            {step === 'verify' && (
+              <p style={{
+                fontSize: '11px',
+                color: '#ffffff',
+                opacity: 0.8,
+                textAlign: 'center',
+                margin: '-8px 0 12px 0', // Скорректированы отступы
+                animation: 'fadeInUp 0.8s ease-out 0.5s both'
+              }}>
+                {t('admin.login.verificationSpamWarning', "P.S. Please check your spam folder!")}
+              </p>
+            )}
+            {/* --- КОНЕЦ ИЗМЕНЕНИЯ --- */}
                       {/* --- КОНЕЦ ИЗМЕНЕНИЯ 1 --- */}
                   </div>
             )}

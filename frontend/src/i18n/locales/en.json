@@ -218,7 +218,8 @@
       "instructions": "We've sent a verification code to {{email}}. Please enter it below.",
       "codeLabel": "Verification code",
       "submitButton": "Verify",
-      "cancelButton": "Cancel"
+      "cancelButton": "Cancel",
+      "spamWarning": "P.S. Please check your spam folder!"
     }
   },
   "owner": {
@@ -504,7 +505,7 @@
       "verificationTitle": "Verification",
       "verificationCodeLabel": "Verification Code",
       "verificationCodeSent": "Credentials are correct. Code has been sent to your email.",
-      "verificationSpamWarning": "P.S. The code might end up in your 'Spam' folder.",
+      "verificationSpamWarning": "P.S. Please check your spam folder!",
       "verifying": "Verifying...",
       "loginButton": "Login",
       "backButton": "Back",
@@ -512,6 +513,7 @@
       "clearAuthButton": "Clear authentication (debug)",
       "backToFormButton": "Back to form",
       "invalidVerificationCode": "Invalid verification code. Please try again."
+      
     }
   },
   "sushi": {

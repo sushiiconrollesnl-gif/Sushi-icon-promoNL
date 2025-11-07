@@ -72,7 +72,8 @@
       "feedback": "Ваши пожелания для нас",
       "street": "Улица",
       "postalCode": "Почтовый код",
-      "marketingConsent": "Я согласен получать маркетинговые предложения и обновления."
+      "marketingConsent": "Я согласен получать маркетинговые предложения и обновления.",
+      "verificationSpamWarning": "P.S. Пожалуйста, проверьте папку «Спам»!"
     },
     "placeholders": {
       "firstName": "Например, Анна",
@@ -541,7 +542,7 @@
       "verificationTitle": "Верификация",
       "verificationCodeLabel": "Код с почты",
       "verificationCodeSent": "Учетные данные верны. Код отправлен на ваш email.",
-      "verificationSpamWarning": "P.S. Код может попасть в папку 'Спам'.",
+      "verificationSpamWarning": "P.S. Пожалуйста, проверьте папку «Спам»!",
       "verifying": "Проверка...",
       "loginButton": "Войти",
       "backButton": "Назад",
