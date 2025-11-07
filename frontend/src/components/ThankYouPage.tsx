@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import AuroraCanvas from "./ui/ambient-aurora";
-import adminLogoImage from "../2025-11-01 23.26.09.jpg";
+import adminLogoImage from "../assets/new_sushi_logo.jpg";
 
 interface ThankYouPageProps {
   customerData: {
