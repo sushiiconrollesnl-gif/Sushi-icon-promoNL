@@ -14,7 +14,7 @@ import { EnhancedAdminPanel } from './components/EnhancedAdminPanel';
 import NetherlandsAddressInput from "./components/NetherlandsAddressInput";
 import AccessDenied from "./components/AccessDenied";
 import AuroraCanvas from "./components/ui/ambient-aurora";
-import adminLogoImage from './2025-11-01 23.26.09.jpg';
+import brandLogoImage from './assets/sushi-icon-logo.svg';
 
 // --- НОВЫЙ ИМПОРТ ---
 import AdminLogin from "./components/AdminLogin"; // <-- Он у вас был, и это правильно!
@@ -277,7 +277,36 @@ export default function App() {
       setIsSubmitting(false);
     }
   };
+  const handleCancelVerification = useCallback(async () => {
+  if (!verificationData) {
+    // На всякий случай, если данных нет, просто скрыть
+    setShowVerification(false);
+    setVerificationData(null);
+    setVerificationCode("");
+    setVerificationError("");
+    return;
+  }
 
+  try {
+    // 1. Отправляем запрос на сервер, чтобы удалить не-верифицированного пользователя
+    await fetch("/api/cancel-registration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerId: verificationData.customerId }),
+    });
+  } catch (error) {
+    console.error("Не удалось отменить регистрацию на сервере:", error);
+    // В любом случае сбрасываем UI
+  }
+
+  // 2. Сбрасываем состояние UI
+  setShowVerification(false);
+  setVerificationData(null);
+  setVerificationCode("");
+  setVerificationError("");
+  // Мы НЕ сбрасываем formState, чтобы пользователь мог исправить свои данные
+
+}, [verificationData]); // <-- Добавьте эту функцию
   // --- НОВАЯ ФУНКЦИЯ ДЛЯ ОБРАБОТКИ УСПЕШНОГО ВХОДА ---
   // AdminLogin.tsx вызовет эту функцию, когда 2FA будет пройдена
   const handleAdminLoginSuccess = (isAuthenticated: boolean) => {
@@ -477,7 +506,7 @@ export default function App() {
                     padding: '0'
                   }}>
                     <img 
-                      src={adminLogoImage} 
+                      src={brandLogoImage} 
                       alt="SUSHI ICON" 
                       style={{
                         width: '100%',
@@ -615,12 +644,7 @@ export default function App() {
                     <InteractiveHoverButton 
                       text={t("registration.verify.cancelButton")}
                       className="button button--secondary"
-                      onClick={() => {
-                        setShowVerification(false);
-                        setVerificationData(null);
-                        setVerificationCode("");
-                        setVerificationError("");
-                      }}
+                      onClick={handleCancelVerification}
                     />
                   </div>
                 </form>

@@ -495,7 +495,7 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
                 boxShadow: '0 8px 28px rgba(0,0,0,0.25)',
                 border: '2px solid rgba(255,255,255,0.35)'
               }}>
-                <img src={BRAND_IMAGE_URL} alt="Sushi Icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={BRAND_IMAGE_URL} alt="Sushi Icon" style={{ width: '120%', height: '120%', objectFit: 'cover' }} />
               </div>
               <div>
                 <div style={{

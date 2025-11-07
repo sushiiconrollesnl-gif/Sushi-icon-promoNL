@@ -263,6 +263,7 @@
       "fields": {
         "title": "Title",
         "body": "Message text"
+        
       },
       "placeholder": {
         "title": "e.g. Hot Roll Weekend",
@@ -430,7 +431,7 @@
       "recipients": "Recipients",
       "selectAll": "Select All",
       "clearAll": "Clear Selection",
-      "sendButton2": "Send to {{count}} recipients",
+      "sendButton": "Send to {{count}} recipients",
       "massTitle": "Mass Broadcast (to all subscribers)",
       "massDesc": "Use this form to send a message to all subscribed customers.",
       "massSms": {

@@ -1348,6 +1348,7 @@ app.get("/api/customers", authenticateSession, async (req, res) => {
         feedback: customer.feedback,
         discountCode: customer.discountCode,
         createdAt: customer.createdAt,
+        marketingConsent: customer.marketingConsent,
       }))
     );
   } catch (error) {
@@ -2228,6 +2229,42 @@ app.post("/api/verify-email", async (req, res) => {
     return res.status(500).json({ success: false, message: "Ошибка сервера при верификации." });
   }
 });
+
+app.post("/api/cancel-registration", async (req, res) => {
+  try {
+    const { customerId } = z.object({ customerId: z.string() }).parse(req.body);
+
+    // Если customerId локальный (был сбой сети), его нет в БД
+    if (customerId.startsWith('local_')) {
+      return res.status(200).json({ message: "Локальный черновик, удаление не требуется." });
+    }
+
+    // Найти и удалить клиента, ТОЛЬКО ЕСЛИ он не верифицирован
+    const result = await prisma.customer.deleteMany({
+      where: {
+        id: customerId,
+        isVerified: false, // <-- Самое важное: не даем удалить тех, кто УЖЕ в базе
+      },
+    });
+
+    if (result.count > 0) {
+      console.log(`[Cancel] Удален не-верифицированный клиент (отмена): ${customerId}`);
+      return res.status(200).json({ message: "Регистрация отменена." });
+    } else {
+      console.log(`[Cancel] Попытка отмены для ${customerId}, но он уже верифицирован или не найден.`);
+      return res.status(404).json({ message: "Клиент не найден или уже верифицирован." });
+    }
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Необходим customerId." });
+    }
+    console.error("Ошибка при отмене регистрации:", error);
+    return res.status(500).json({ message: "Ошибка сервера." });
+  }
+});
+
+
 // --- НОВЫЙ БЛОК: Раздача статики (Frontend) ---
 // Этот код будет обслуживать "сборку" твоего React-приложения
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
