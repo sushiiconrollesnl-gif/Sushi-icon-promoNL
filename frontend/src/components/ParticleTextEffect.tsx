@@ -329,7 +329,7 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className, maxWidth 
     
     if (animationPhaseRef.current === 'assembled') {
       // Частицы собраны, ждем 3 секунды, затем начинаем рассыпание
-      if (phaseFrameCountRef.current >= 300) {
+      if (phaseFrameCountRef.current >= 240) {
         animationPhaseRef.current = 'exploding';
         phaseFrameCountRef.current = 0;
         // Рассыпаем все частицы
@@ -345,7 +345,7 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className, maxWidth 
       }
     } else if (animationPhaseRef.current === 'scattered') {
       // Частицы рассыпаны, ждем 1.5 секунды, затем начинаем сборку
-      if (phaseFrameCountRef.current >= 180) {
+      if (phaseFrameCountRef.current >= 120) {
         animationPhaseRef.current = 'assembled';
         phaseFrameCountRef.current = 0;
         // Собираем частицы обратно в текст
