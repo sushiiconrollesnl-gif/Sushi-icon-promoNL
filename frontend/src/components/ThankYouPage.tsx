@@ -148,7 +148,7 @@ const ThankYouPage: React.FC<ThankYouPageProps> = ({ customerData, onClose }) =>
             <div className="info-card">
               <h4>{t("thankYou.contact.title")}</h4>
               <p>{t("thankYou.contact.phone")}: <strong>+31 6 45 41 44 64</strong></p>
-              <p>{t("thankYou.contact.email")}: <strong>"sushi.icon.rolles.nl@gmail.com</strong></p>
+              <p>{t("thankYou.contact.email")}: <strong>sushi.icon.rolles.nl@gmail.com</strong></p>
             </div>
             
             <div className="info-card">
