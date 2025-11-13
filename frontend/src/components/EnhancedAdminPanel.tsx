@@ -377,8 +377,56 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
       setIsSendingMassWhatsApp(false);
     }
   };
+  const handleDeleteCustomer = async (customerId: string, customerName: string) => {
+   // 1. ЗАЩИТА: Обязательное подтверждение
+   const confirmation = window.prompt(
+   `Вы уверены, что хотите НАВСЕГДА удалить клиента "${customerName}"?\n\nЭто действие необратимо. Для подтверждения введите "УДАЛИТЬ":`
+  );
 
+   if (confirmation !== "УДАЛИТЬ") {
+    alert("Удаление отменено.");
+    return;
+   }
 
+   // 2. Получаем токен (у вас он должен быть в state или localStorage)
+   const token = localStorage.getItem("ownerToken"); 
+   if (!token) {
+    alert("Ошибка: токен администратора не найден. Пожалуйста, войдите снова.");
+    return;
+   }
+
+   try {
+    // 3. Отправляем запрос на бэкенд (на наш новый маршрут)
+    const response = await fetch(`/api/customer/${customerId}`, {
+     method: "DELETE",
+     headers: {
+      "x-owner-token": token,
+     },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+     throw new Error(data.message || "Ошибка при удалении");
+    }
+
+    // 4. УСПЕХ: Обновляем UI, удаляя клиента из локального state
+    // (Это нужно, чтобы список обновился без перезагрузки страницы)
+    setCustomers((prevCustomers) => 
+     prevCustomers.filter((customer) => customer.id !== customerId)
+    );
+  
+    alert(`Клиент "${customerName}" успешно удален.`);
+
+   } catch (error) {
+    console.error("Ошибка при удалении клиента:", error);
+      // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+    const message = error instanceof Error ? error.message : String(error);
+    alert(`Не удалось удалить клиента: ${message}`);
+      // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+   }
+ };
+  
   // Функции фильтрации
   const filteredCustomers = customers.filter(customer => {
     const matchesSearch = searchTerm === '' || 
@@ -756,6 +804,23 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
                         <span className="badge badge--promo">{customer.discountCode}</span>
                       </td>
                       <td className="customer-date">{formatDate(customer.createdAt)}</td>
+                      <th>{t('admin.customers.table.registrationDate')}</th>
+                      <th>Действия</th>
+                      <td>
+                        <button 
+                        onClick={() => handleDeleteCustomer(customer.id, `${customer.firstName} ${customer.lastName}`)}
+                        style={{ 
+                              color: 'white', 
+                              backgroundColor: '#E53E3E', // Красный фон
+                              border: 'none', 
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                          Удалить
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

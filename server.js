@@ -475,7 +475,65 @@ async function getDeviceAndLocationInfo(req) {
   
   return deviceInfo;
 }
+async function sendBirthdayEmailToCustomer(customer) {
+  // Убедимся, что SendGrid настроен
+  if (!sgMail || !process.env.SENDGRID_FROM_EMAIL) {
+    console.warn(`[Birthday] Пропуск отправки для ${customer.email}: SendGrid не настроен.`);
+    return;
+  }
 
+  // Убедимся, что у клиента есть email
+  if (!customer.email) {
+    console.warn(`[Birthday] Пропуск отправки для ${customer.id}: отсутствует email.`);
+    return;
+  }
+
+  try {
+    console.log(`[Birthday] Подготовка к отправке письма клиенту: ${customer.email} (ID: ${customer.id})`);
+
+    // 1. Формируем HTML письма
+    const customerName = customer.firstName || 'дорогой клиент';
+    const birthdaySubject = `С Днём Рождения, ${customerName}! 🎉🍣`;
+    const birthdayBodyHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #0ABAB5;">SUSHI ICON</h2>
+        <h3 style="color: #333;">С Днём Рождения, ${customerName}!</h3>
+        <p>Наша команда от всей души поздравляет вас с этим замечательным днём!</p>
+        <p>Мы дарим вам <strong>скидку -15% на любой сет</strong> и <strong>сюрприз в подарок</strong> к вашему заказу.</p>
+        <p style="color: #666; font-size: 14px;">Воспользуйтесь вашим подарком в ближайшее время!</p>
+        <p style="color: #666; font-size: 12px; margin-top: 30px;">С наилучшими пожеланиями, команда Sushi Icon.</p>
+      </div>
+    `;
+
+    // 2. Создаем объект сообщения
+    const msg = {
+      to: customer.email,
+      from: {
+        name: 'Sushi Icon',
+        email: process.env.SENDGRID_FROM_EMAIL
+      },
+      subject: birthdaySubject,
+      html: birthdayBodyHtml,
+    };
+
+    // 3. Отправляем
+    await sgMail.send(msg);
+
+    // 4. Обновляем статус в БД, только если письмо УСПЕШНО отправлено
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: { lastBirthdayGreetingSent: new Date() },
+    });
+
+    console.log(`[Birthday] Письмо успешно отправлено и статус обновлен для: ${customer.email}`);
+
+  } catch (emailError) {
+    console.error(`[Birthday] Ошибка при отправке письма клиенту ${customer.email}:`, emailError.message);
+    if (emailError.response) {
+      console.error('[Birthday] Детали ошибки SendGrid:', JSON.stringify(emailError.response.body, null, 2));
+    }
+  }
+}
 // ----------------------------------------------------------------
 // --- НАЧАЛО МАРШРУТОВ API ---
 // ----------------------------------------------------------------
@@ -1356,6 +1414,44 @@ app.get("/api/customers", authenticateSession, async (req, res) => {
     return res.status(500).json({ message: "Ошибка сервера при получении клиентов." });
   }
 });
+app.delete("/api/customer/:id", authenticateSession, async (req, res) => {
+  try {
+    // 1. Получаем ID клиента из URL
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "ID клиента не указан." });
+    }
+
+    console.log(`[Admin] Получен запрос на удаление клиента с ID: ${id}`);
+
+    // 2. Выполняем удаление
+    // ВАЖНО: Ваша schema.prisma содержит 'onDelete: Cascade' для MessageSubscription.
+    // Это значит, что при удалении клиента, все его подписки (MessageSubscription)
+    // будут удалены автоматически. Это правильное поведение.
+    await prisma.customer.delete({
+      where: { id: id },
+    });
+
+    // 3. Отправляем успешный ответ
+    console.log(`[Admin] Клиент ${id} успешно удален.`);
+    return res.status(200).json({ 
+      success: true, 
+      message: "Клиент успешно удален." 
+    });
+
+  } catch (error) {
+    // Обработка ошибки, если клиент не найден (Prisma error P2025)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      console.warn(`[Admin] Не удалось удалить: Клиент ${req.params.id} не найден.`);
+      return res.status(404).json({ message: "Клиент не найден." });
+    }
+
+    // Другие ошибки сервера
+    console.error("Ошибка при удалении клиента:", error);
+    return res.status(500).json({ message: "Ошибка сервера при удалении клиента." });
+  }
+});
 // Синхронизация данных анкеты для панели администратора
 app.get("/api/sync/form-data", authenticateSession, async (req, res) => {
   try {
@@ -2206,13 +2302,28 @@ app.post("/api/verify-email", async (req, res) => {
 
     // Успех!
     console.log(`[Verify] УСПЕХ: Коды совпали. Верифицируем пользователя ${customer.email}.`);
-    await prisma.customer.update({
+    const updatedCustomer = await prisma.customer.update({
       where: { id: customerId },
       data: {
         isEmailVerified: true,
         emailVerificationCode: null, // Очищаем код
       },
     });
+
+    // --- НОВЫЙ БЛОК: Проверка дня рождения при верификации ---
+    if (updatedCustomer.birthDate) {
+      const today = new Date();
+      const birthDate = new Date(updatedCustomer.birthDate);
+      
+      // Сравниваем только месяц и день
+      if (today.getMonth() === birthDate.getMonth() && today.getDate() === birthDate.getDate()) {
+        console.log(`[Verify] У пользователя ${updatedCustomer.email} сегодня день рождения! Отправляем письмо.`);
+        // Вызываем нашу новую функцию
+        // (не ждем await, чтобы не задерживать ответ пользователю)
+        sendBirthdayEmailToCustomer(updatedCustomer);
+      }
+    }
+    // --- КОНЕЦ НОВОГО БЛОКА ---
 
     return res.status(200).json({
       success: true,
@@ -2339,112 +2450,73 @@ app.post('/api/export-to-sheets', authenticateSession, async (req, res) => {
 // ... в server.js
 
 async function checkAndSendBirthdayEmails() {
-  console.log('Task: Запуск checkAndSendBirthdayEmails...');
+  console.log('Task: [Birthday] Запуск ежедневной проверки дней рождения...');
   
   const today = new Date();
-  const currentMonth = today.getMonth() + 1; // getMonth() 0-indexed,
+  const currentMonth = today.getMonth() + 1; // getMonth() 0-indexed
   const currentDay = today.getDate();
-  const startOfYear = new Date(today.getFullYear(), 0, 1);
-
-  // --- ИСПРАВЛЕНИЕ 1: Убираем проверку SENDGRID_BIRTHDAY_TEMPLATE_ID ---
-  // Нам нужен только sgMail и email отправителя
-  if (!sgMail || !process.env.SENDGRID_FROM_EMAIL) {
-    console.warn('⚠️  Рассылка ко дню рождения пропущена: SendGrid (sgMail) или SENDGRID_FROM_EMAIL не настроены.');
-    return;
-  }
-  // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+   
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   try {
-    // 1. Получаем список клиентов (логика та же)
+    // 1. Получаем список клиентов
+    // Запрос стал проще, т.к. проверка SendGrid ушла в функцию
     const customers = await prisma.$queryRaw`
       SELECT * FROM "Customer" 
       WHERE EXTRACT(MONTH FROM "birthDate") = ${currentMonth} 
         AND EXTRACT(DAY FROM "birthDate") = ${currentDay}
         AND "marketingConsent" = TRUE
-        AND ("lastBirthdayGreetingSent" IS NULL OR "lastBirthdayGreetingSent" < ${startOfYear})
+        AND "isEmailVerified" = TRUE
+        AND ("lastBirthdayGreetingSent" IS NULL OR "lastBirthdayGreetingSent" < ${startOfToday})
     `;
 
-    console.log(`Найдено ${customers.length} клиентов с днем рождения сегодня, кто дал согласие.`);
+    console.log(`[Birthday] Найдено ${customers.length} клиентов для поздравления сегодня.`);
 
     // 2. Проходим по каждому клиенту в цикле
     for (const customer of customers) {
-      
-      // 3. Отправляем письмо
-      try {
-        console.log(`Отправка письма клиенту: ${customer.email} (ID: ${customer.id})`);
-
-        // --- ИСПРАВЛЕНИЕ 2: Используем простой HTML вместо шаблона ---
-        
-        // 1. Берем тот самый HTML, который был закомментирован, и вставляем имя клиента
-        const customerName = customer.firstName || 'дорогой клиент';
-        const birthdaySubject = `С Днём Рождения, ${customerName}! 🎉🍣`;
-        const birthdayBodyHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #0ABAB5;">SUSHI ICON</h2>
-            <h3 style="color: #333;">С Днём Рождения, ${customerName}!</h3>
-            <p>Наша команда от всей души поздравляет вас с этим замечательным днём!</p>
-            <p>Мы дарим вам <strong>скидку -15% на любой сет</strong> и <strong>сюрприз в подарок</strong> к вашему заказу.</p>
-            <p style="color: #666; font-size: 14px;">Воспользуйтесь вашим подарком в ближайшее время!</p>
-            <p style="color: #666; font-size: 12px; margin-top: 30px;">С наилучшими пожеланиями, команда Sushi Icon.</p>
-          </div>
-        `;
-
-        // 2. Создаем объект сообщения
-        const msg = {
-          to: customer.email,
-          from: {
-            name: 'Sushi Icon', // Имя отправителя
-            email: process.env.SENDGRID_FROM_EMAIL // Email, с которого отправляем
-          },
-          subject: birthdaySubject, // Используем наш заголовок
-          html: birthdayBodyHtml,   // Используем наш HTML
-          // templateId и dynamicTemplateData больше не нужны
-        };
-        // --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
-
-        await sgMail.send(msg); 
-        
-        // Обновляем статус, только если письмо УСПЕШНО отправлено
-        await prisma.customer.update({
-          where: { id: customer.id },
-          data: { lastBirthdayGreetingSent: new Date() },
-        });
-
-        console.log(`Письмо отправлено и статус обновлен для: ${customer.email}`);
-
-      } catch (emailError) {
-        console.error(`Ошибка при отправке письма клиенту ${customer.email}:`, emailError.message);
-        if (emailError.response) {
-           console.error('Детали ошибки SendGrid:', JSON.stringify(emailError.response.body, null, 2));
-        }
-      }
+      // 3. Вызываем нашу новую функцию
+      // Мы используем 'await', т.к. это фоновый процесс
+      await sendBirthdayEmailToCustomer(customer);
     } // Конец цикла for
 
+    console.log('Task: [Birthday] Ежедневная проверка завершена.');
+
   } catch (dbError) {
-    console.error('Критическая ошибка (например, $queryRaw) в checkAndSendBirthdayEmails:', dbError);
+    console.error('Task: [Birthday] Критическая ошибка (например, $queryRaw) в checkAndSendBirthdayEmails:', dbError);
   }
 }
+ 
 
-// Запускаем проверку (этот код у вас уже есть, не меняйте его)
-setInterval(checkAndSendBirthdayEmails, 24 * 60 * 60 * 1000);
-    // // Текст поздравления
-    // const birthdaySubject = 'С Днём Рождения от Sushi Icon!';
-    // const birthdayBodyText = 'С Днём Рождения! Наша команда поздравляет вас и дарит -15% на сет и сюрприз в подарок!';
-    // const birthdayBodyHtml = `
-    //   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    //     <h2 style="color: #0ABAB5;">SUSHI ICON</h2>
-    //     <h3 style="color: #333;">С Днём Рождения, ${"Имя"}!</h3>
-    //     <p>Наша команда от всей души поздравляет вас с этим замечательным днём!</p>
-    //     <p>Мы дарим вам <strong>скидку -15% на любой сет</strong> и <strong>сюрприз в подарок</strong> к вашему заказу.</p>
-    //     <p style="color: #666; font-size: 14px;">Воспользуйтесь вашим подарком в ближайшее время!</p>
-    //     <p style="color: #666; font-size: 12px; margin-top: 30px;">С наилучшими пожеланиями, команда Sushi Icon.</p>
-    //   </div>
-    // `;
-
+function scheduleDailyCheck() {
+  const now = new Date();
   
+  // 1. Устанавливаем время следующего запуска (00:01)
+  let nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 1, 0, 0);
+  
+  // Если 00:01 сегодня уже прошло, планируем на завтра
+  if (now.getTime() > nextRun.getTime()) {
+    nextRun.setDate(nextRun.getDate() + 1);
+  }
 
-// Запускаем проверку каждые 6 часов (21600000 мс)
-setInterval(checkAndSendBirthdayEmails, 24 * 60 * 60 * 1000);
+  // 2. Считаем, сколько мс осталось до этого времени
+  const msUntilNextRun = nextRun.getTime() - now.getTime();
+
+  console.log(`[Scheduler] Следующая проверка ДР запланирована на: ${nextRun.toLocaleString()}`);
+  console.log(`[Scheduler] (Это через ${Math.round(msUntilNextRun / 1000 / 60)} минут)`);
+
+  // 3. Ставим таймер на первый запуск
+  setTimeout(() => {
+    console.log('[Scheduler] Запуск плановой проверки ДР (00:01)');
+    checkAndSendBirthdayEmails();
+
+    // 4. После первого запуска, ставим интервал на "каждые 24 часа"
+    setInterval(checkAndSendBirthdayEmails, 24 * 60 * 60 * 1000);
+    
+  }, msUntilNextRun);
+}
+
+// Запускаем наш новый планировщик
+scheduleDailyCheck();
 
 // (Опционально) Запустить проверку один раз при старте сервера
 // sendBirthdayGreetings();
