@@ -776,7 +776,6 @@ export const EnhancedAdminPanel: React.FC<EnhancedAdminPanelProps> = ({ adminTok
                     <th>{t('admin.customers.table.feedback')}</th>
                     <th>{t('admin.customers.table.promoCode')}</th>
                     <th>{t('admin.customers.table.registrationDate')}</th>
-                    <th>{t('admin.customers.table.registrationDate')}</th>
                     <th>Действия</th>
                   </tr>
                 </thead>
