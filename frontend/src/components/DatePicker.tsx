@@ -207,14 +207,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// --- Константы для Годов ---
-const CURRENT_YEAR = new Date().getFullYear();
-const MIN_AGE = 16; // Минимальный возраст
-const MAX_YEAR = CURRENT_YEAR - MIN_AGE; // Самый "молодой" год
-const MIN_YEAR = 1900; // Самый "старый" год
+// --- Новые константы для Годов (по вашему запросу) ---
+const MIN_YEAR = 1900;
+const MAX_YEAR = 2025;
 
 const YEARS = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => 
-  String(MAX_YEAR - i)
+  String(MAX_YEAR - i) // Создает список [2025, 2024, ..., 2010]
 );
 // --- Конец констант ---
 
@@ -262,7 +260,7 @@ const parseDate = (dateString: string): [string, string, string] => {
       return [year, month, day];
     }
   }
-  // Значения по умолчанию
+  // Значения по умолчанию (2025, 01, 01)
   return [String(MAX_YEAR), '01', '01'];
 };
 
@@ -285,10 +283,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
   // --- Динамическая карта месяцев на основе i18n ---
   const MONTHS_MAP = useMemo(() => {
     // Ключи из ваших en.json/nl.json
+    // Порядок жестко задан здесь, с января по декабрь
     const keys = [
       'january', 'february', 'march', 'april', 'may', 'june', 
       'july', 'august', 'september', 'october', 'november', 'december'
     ];
+    
     // Собираем объект вида { '01': 'January', '02': 'February', ... }
     return keys.reduce((acc, key, index) => {
       const monthNumber = String(index + 1).padStart(2, '0');
@@ -298,7 +298,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
     }, {} as Record<string, string>);
   }, [t]);
 
-  // Внутреннее состояние для каждой колонки
+  // Внутреннее состояние (по умолчанию - 1 января 2025)
   const [year, setYear] = useState(String(MAX_YEAR));
   const [month, setMonth] = useState('01');
   const [day, setDay] = useState('01');
@@ -365,7 +365,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
         <select
           id="date-picker-day"
           name="birth-day"
-          className="form__input" // <-- ВОТ ЭТОТ КЛАСС
+          className="form__input" // <-- Класс стиля
           value={day}
           onChange={(e) => handleChange('day', e.target.value)}
           required={required}
@@ -382,11 +382,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
         <select
           id="date-picker-month"
           name="birth-month"
-          className="form__input" // <-- ВОТ ЭТОТ КЛАСС
+          className="form__input" // <-- Класс стиля
           value={month}
           onChange={(e) => handleChange('month', e.target.value)}
           required={required}
         >
+          {/* Object.entries() сохраняет порядок вставки, который мы задали в MONTHS_MAP */}
           {Object.entries(MONTHS_MAP).map(([monthValue, monthName]) => (
             <option key={monthValue} value={monthValue}>
               {monthName}
@@ -401,7 +402,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
         <select
           id="date-picker-year"
           name="birth-year"
-          className="form__input" // <-- ВОТ ЭТОТ КЛАСС
+          className="form__input" // <-- Класс стиля
           value={year}
           onChange={(e) => handleChange('year', e.target.value)}
           required={required}
