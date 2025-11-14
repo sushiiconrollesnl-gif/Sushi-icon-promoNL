@@ -6798,3 +6798,36 @@ td {
   background: #333;
   color: white;
 }
+
+.particle-logo-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Стиль для логотипа, который "поверх" текста */
+.app-logo-square-overlay {
+  position: absolute;
+  /* Подберите отступ сверху, как вам нравится */
+  top: 2.5rem; 
+  
+  left: 50%;
+  transform: translateX(-50%); /* Точное центрирование по горизонтали */
+  
+  /* "Нормальный размер" логотипа */
+  width: 90px; 
+  height: 90px;
+  
+  z-index: 10; /* Убедимся, что он поверх canvas с текстом */
+  
+  /* Добавим тень, чтобы логотип выделялся */
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+}
+
+/* Убедимся, что сам эффект текста не перекрывает логотип */
+.particle-logo-wrapper > div {
+  position: relative;
+  z-index: 1;
+}

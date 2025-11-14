@@ -14,7 +14,7 @@ import NetherlandsAddressInput from "./components/NetherlandsAddressInput";
 import AccessDenied from "./components/AccessDenied";
 import AuroraCanvas from "./components/ui/ambient-aurora";
 import brandLogoImage from './assets/new_sushi_logo.jpg';
-
+import brandLogoSquare from './assets/fish.png';
 // --- НОВЫЙ ИМПОРТ ---
 import AdminLogin from "./components/AdminLogin"; // <-- Он у вас был, и это правильно!
 
@@ -139,7 +139,7 @@ export default function App() {
   const handleInputChange = useCallback((field: keyof RegistrationFormState, value: string | boolean) => {
   setFormState(prev => ({ ...prev, [field]: value }));
 }, []);
-    
+
   
   // --- (handleSubmit остается без изменений) ---
   const handleSubmit = useCallback(async (e: FormEvent) => {
@@ -892,7 +892,11 @@ export default function App() {
             }}
           >
             {!showAdminLogin && !(isAdminAuthenticated && showAdminPanel) && (
+            // Добавляем специальный контейнер для позиционирования
+            <div className="particle-logo-wrapper">
+              <img src={brandLogoSquare} alt="Sushi Icon Logo" className="app-logo-square-overlay" />
               <ParticleTextEffect className="shadow-[0_28px_60px_rgba(0,84,107,0.25)]" maxWidth="700px" minHeight="320px" />
+            </div>
             )}
             {renderContent()}
           </div>
