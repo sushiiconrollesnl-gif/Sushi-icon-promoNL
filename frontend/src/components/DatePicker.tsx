@@ -359,7 +359,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
           name="birth-day"
           className="form__input"
           value={day}
-          onChange={(e) => handleChange('day', e.g.target.value)}
+          onChange={(e) => handleChange('day', e.target.value)}
           required={required}
         >
           {DAYS.map((d) => (
