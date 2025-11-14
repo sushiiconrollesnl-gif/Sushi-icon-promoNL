@@ -139,7 +139,7 @@ export default function App() {
   const handleInputChange = useCallback((field: keyof RegistrationFormState, value: string | boolean) => {
   setFormState(prev => ({ ...prev, [field]: value }));
 }, []);
-  
+    
   
   // --- (handleSubmit остается без изменений) ---
   const handleSubmit = useCallback(async (e: FormEvent) => {
@@ -901,3 +901,4 @@ export default function App() {
     </div>
   );
 }
+
