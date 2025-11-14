@@ -203,16 +203,15 @@
 
 // // Экспорт по умолчанию, чтобы работал import в App_new.tsx
 // export default DatePicker;
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// --- Новые константы для Годов (по вашему запросу) ---
+// --- Константы для Годов (2025-2010) ---
 const MIN_YEAR = 1900;
 const MAX_YEAR = 2025;
 
 const YEARS = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => 
-  String(MAX_YEAR - i) // Создает список [2025, 2024, ..., 2010]
+  String(MAX_YEAR - i) // [2025, 2024, ..., 2010]
 );
 // --- Конец констант ---
 
@@ -223,7 +222,6 @@ const YEARS = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) =>
  * Получает количество дней в месяце (месяц 1-based)
  */
 const getDaysInMonth = (month: number, year: number): number => {
-  // 0-й день следующего месяца - это последний день текущего
   return new Date(year, month, 0).getDate();
 };
 
@@ -280,22 +278,23 @@ interface DatePickerProps {
 export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, required = false }) => {
   const { t } = useTranslation();
   
-  // --- Динамическая карта месяцев на основе i18n ---
-  const MONTHS_MAP = useMemo(() => {
-    // Ключи из ваших en.json/nl.json
+  // --- ИСПРАВЛЕНИЕ: Используем Массив (Array) вместо Объекта (Object) ---
+  // Это гарантирует правильный порядок месяцев
+  const MONTHS_ARRAY = useMemo(() => {
     // Порядок жестко задан здесь, с января по декабрь
     const keys = [
       'january', 'february', 'march', 'april', 'may', 'june', 
       'july', 'august', 'september', 'october', 'november', 'december'
     ];
     
-    // Собираем объект вида { '01': 'January', '02': 'February', ... }
-    return keys.reduce((acc, key, index) => {
+    // Собираем массив объектов
+    return keys.map((key, index) => {
       const monthNumber = String(index + 1).padStart(2, '0');
-      // Используем правильный ключ из JSON файлов
-      acc[monthNumber] = t(`registration.datePicker.months.${key}`);
-      return acc;
-    }, {} as Record<string, string>);
+      return {
+        value: monthNumber, // "01", "02", ...
+        name: t(`registration.datePicker.months.${key}`) // "January", "February", ...
+      };
+    });
   }, [t]);
 
   // Внутреннее состояние (по умолчанию - 1 января 2025)
@@ -305,19 +304,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
 
   // 1. Синхронизация с `value` из пропсов
   useEffect(() => {
-    // Применяем parseDate к `value`
     const [parsedYear, parsedMonth, parsedDay] = parseDate(value);
     setYear(parsedYear);
     setMonth(parsedMonth);
     setDay(parsedDay);
-  }, [value]); // Зависимость только от value
+  }, [value]);
 
   // 2. Динамический список дней (зависит от месяца и года)
   const DAYS = useMemo(() => {
     const daysInMonth = getDaysInMonth(parseInt(month, 10), parseInt(year, 10));
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = String(i + 1);
-      return day.padStart(2, '0'); // "1" -> "01"
+      return day.padStart(2, '0');
     });
   }, [month, year]);
 
@@ -335,39 +333,33 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
       newDay = newValue;
     }
 
-    // --- Валидация дня при смене месяца или года ---
     if (type === 'year' || type === 'month') {
       const daysInNewMonth = getDaysInMonth(parseInt(newMonth, 10), parseInt(newYear, 10));
-      // Если текущий день (например, 31) больше, чем дней в новом месяце (например, 29 в феврале)
       if (parseInt(newDay, 10) > daysInNewMonth) {
-        newDay = String(daysInNewMonth).padStart(2, '0'); // Устанавливаем макс. день (29)
+        newDay = String(daysInNewMonth).padStart(2, '0');
       }
     }
     
-    // Обновляем внутреннее состояние
     setYear(newYear);
     setMonth(newMonth);
     setDay(newDay);
 
-    // Собираем дату в "YYYY-MM-DD" и отправляем "наверх"
     const newDateString = `${newYear}-${newMonth}-${newDay}`;
     onChange(newDateString);
   };
 
   return (
-    // 'custom-date-picker' для группировки и стилизации (как в App.css)
     <div className="custom-date-picker">
       
       {/* --- Колонка 1: ЧИСЛО --- */}
       <div className="picker-group">
-        {/* Используем ключ перевода из nl.json/en.json */}
         <label htmlFor="date-picker-day">{t('registration.datePicker.day')}</label>
         <select
           id="date-picker-day"
           name="birth-day"
-          className="form__input" // <-- Класс стиля
+          className="form__input"
           value={day}
-          onChange={(e) => handleChange('day', e.target.value)}
+          onChange={(e) => handleChange('day', e.g.target.value)}
           required={required}
         >
           {DAYS.map((d) => (
@@ -382,15 +374,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
         <select
           id="date-picker-month"
           name="birth-month"
-          className="form__input" // <-- Класс стиля
+          className="form__input"
           value={month}
           onChange={(e) => handleChange('month', e.target.value)}
           required={required}
         >
-          {/* Object.entries() сохраняет порядок вставки, который мы задали в MONTHS_MAP */}
-          {Object.entries(MONTHS_MAP).map(([monthValue, monthName]) => (
-            <option key={monthValue} value={monthValue}>
-              {monthName}
+          {/* ИСПОЛЬЗУЕМ MONTHS_ARRAY для 100% гарантии порядка */}
+          {MONTHS_ARRAY.map((month) => (
+            <option key={month.value} value={month.value}>
+              {month.name}
             </option>
           ))}
         </select>
@@ -402,7 +394,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
         <select
           id="date-picker-year"
           name="birth-year"
-          className="form__input" // <-- Класс стиля
+          className="form__input"
           value={year}
           onChange={(e) => handleChange('year', e.target.value)}
           required={required}
@@ -416,5 +408,4 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, require
   );
 };
 
-// Экспорт по умолчанию, чтобы работал import в App.tsx
 export default DatePicker;
