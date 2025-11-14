@@ -1,13 +1,12 @@
 import React, { useState, useCallback, useEffect, useMemo, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-
+import { DatePicker } from './components/DatePicker';
 import "./App.css";
 import "./i18n/config";
 import { ParticleTextEffect } from "./components/ParticleTextEffect";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import SimpleCountrySelector from "./components/SimpleCountrySelector";
 import SimplePhoneInput from "./components/SimplePhoneInput";
-import DatePicker from "./components/DatePicker";
 import { InteractiveHoverButton } from "./components/ui/interactive-hover-button";
 import ThankYouPage from "./components/ThankYouPage";
 import { EnhancedAdminPanel } from './components/EnhancedAdminPanel';
@@ -140,7 +139,8 @@ export default function App() {
   const handleInputChange = useCallback((field: keyof RegistrationFormState, value: string | boolean) => {
   setFormState(prev => ({ ...prev, [field]: value }));
 }, []);
-
+  
+  
   // --- (handleSubmit остается без изменений) ---
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
