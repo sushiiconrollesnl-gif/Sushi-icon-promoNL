@@ -2540,30 +2540,41 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   // --- 2. НАСТРОЙКА СЕССИЙ ---
   // (Для хранения языка, корзины и т.д.)
   const session = new LocalSession({ database: 'sessions.json' });
-  bot.use(session.middleware());
-  bot.use(async (ctx, next) => {
-    // Запускаем, только если язык в сессии отсутствует
-    if (!ctx.session.lang && ctx.from && ctx.from.id) {
-      try {
-        const telegramId = BigInt(ctx.from.id);
-        const user = await prisma.customer.findUnique({
-          where: { telegramId: telegramId },
-          select: { languageCode: true } // Берем из БД только язык
-        });
+ bot.use(session.middleware());
 
-        // Если нашли пользователя и у него есть язык
-        if (user && user.languageCode) {
-          ctx.session.lang = user.languageCode; // Восстанавливаем язык в сессию
-        }
-      } catch (e) {
-        console.error("Ошибка восстановления языка из БД:", e.message);
+// --- 2. Потом i18n (он создаст ctx.i18n, но может выбрать 'ru') ---
+bot.use(i18n.middleware());
+
+// --- 3. (ИСПРАВЛЕНИЕ) Наш код, который ЧИНИТ язык ---
+// (Он должен идти ПОСЛЕ i18n.middleware())
+bot.use(async (ctx, next) => {
+  let lang = ctx.session.lang; // 1. Пробуем взять из сессии
+
+  // 2. Если в сессии нет, лезем в БД
+  if (!lang && ctx.from && ctx.from.id) {
+    try {
+      const telegramId = BigInt(ctx.from.id);
+      const user = await prisma.customer.findUnique({
+        where: { telegramId: telegramId },
+        select: { languageCode: true }
+      });
+      if (user && user.languageCode) {
+        lang = user.languageCode;
+        ctx.session.lang = lang; // Сохраняем в сессию на будущее
       }
+    } catch (e) {
+      console.error("Ошибка восстановления языка из БД:", e.message);
     }
-    // Передаем управление дальше (либо с восстановленным языком, либо как было)
-    return next();
-  });
-  // --- КОНЕЦ НОВОГО MIDDLEWARE ---
-  bot.use(i18n.middleware());
+  }
+
+  // 3. Если мы нашли язык (из сессии или БД),
+  // ПРИНУДИТЕЛЬНО устанавливаем его для i18n
+  if (lang) {
+    ctx.i18n.locale(lang);
+  }
+
+  return next();
+});
 
   // --- 3. ХЕЛПЕРЫ (Вспомогательные функции) ---
 
@@ -2720,27 +2731,28 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
    * Показывает список продуктов в категории
    */
   const showProducts = async (ctx, categoryId) => {
+  try {
     const products = await prisma.product.findMany({
       where: { categoryId: categoryId },
     });
-    
+
     if (products.length === 0) {
       await ctx.reply(ctx.i18n.t('messages.no_products_in_category'));
       return;
     }
-    
+
     // Отправляем каждый продукт отдельной "карточкой"
     for (const product of products) {
       const name = getL10nField(ctx, product, 'name');
       const ingredients = getL10nField(ctx, product, 'ingredients');
       const caption = `<b>${name} — ${product.price}€</b>\n\n${ingredients || ''}`;
-      
+
       // Проверяем, в избранном ли
       const user = await getOrCreateUser(ctx);
       const isFavorite = user ? await prisma.favoriteProduct.findUnique({
         where: { customerId_productId: { customerId: user.id, productId: product.id } }
       }) : false;
-      
+
       const favButton = isFavorite
         ? Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${product.id}`)
         : Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${product.id}`);
@@ -2750,30 +2762,48 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
         favButton
       ]);
 
-      if (product.imageUrl) {
-        await ctx.replyWithPhoto(product.imageUrl, {
-          caption: caption,
-          parse_mode: 'HTML',
-          reply_markup: keyboard.reply_markup,
-        });
-      } else {
+      // --- 🚀 ИСПРАВЛЕНИЕ КРАША (Error 400) ---
+      try {
+        if (product.imageUrl) {
+          // Пытаемся отправить с фото
+          await ctx.replyWithPhoto(product.imageUrl, {
+            caption: caption,
+            parse_mode: 'HTML',
+            reply_markup: keyboard.reply_markup,
+          });
+        } else {
+          // Если imageUrl нет, просто отправляем текст
+          await ctx.replyWithHTML(caption, keyboard);
+        }
+      } catch (photoError) {
+        // Если отправка фото НЕ УДАЛАСЬ (400 Bad Request и т.д.)
+        console.error(`[CRITICAL] Ошибка загрузки фото ${product.imageUrl}:`, photoError.message);
+        // ...отправляем сообщение БЕЗ ФОТО, чтобы бот не упал
         await ctx.replyWithHTML(caption, keyboard);
       }
+      // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
     }
-    
+
     // Кнопка "Назад"
     await ctx.reply(
-      'Нажмите, чтобы вернуться к категориям:',
+      // --- 🚀 ИСПРАВЛЕНИЕ ЯЗЫКА (убран русский текст) ---
+      ctx.i18n.t('buttons.back_to_categories'), 
+      // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
       Markup.inlineKeyboard([
         [Markup.button.callback(ctx.i18n.t('buttons.back_to_categories'), 'show_categories')]
       ])
     );
-  };
+  } catch (dbError) {
+    console.error("[CRITICAL] Ошибка БД в showProducts:", dbError);
+    await ctx.reply('Произошла ошибка при загрузке товаров. Попробуйте позже.');
+  }
+};
   
   /**
    * Показывает продукты по флагу (Popular, Chef, Promo)
    */
   const showProductsByFlag = async (ctx, flagName, emptyMessageKey) => {
+  try {
     const whereClause = {};
     whereClause[flagName] = true; // e.g. { isPopular: true }
 
@@ -2783,18 +2813,18 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
       await ctx.reply(ctx.i18n.t(emptyMessageKey));
       return;
     }
-    
+
     for (const product of products) {
       // (Логика та же, что и в showProducts)
       const name = getL10nField(ctx, product, 'name');
       const ingredients = getL10nField(ctx, product, 'ingredients');
       const caption = `<b>${name} — ${product.price}€</b>\n\n${ingredients || ''}`;
-      
+
       const user = await getOrCreateUser(ctx);
       const isFavorite = user ? await prisma.favoriteProduct.findUnique({
         where: { customerId_productId: { customerId: user.id, productId: product.id } }
       }) : false;
-      
+
       const favButton = isFavorite
         ? Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${product.id}`)
         : Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${product.id}`);
@@ -2803,18 +2833,33 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
         Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${product.id}`),
         favButton
       ]);
-      
-      if (product.imageUrl) {
-        await ctx.replyWithPhoto(product.imageUrl, {
-          caption: caption,
-          parse_mode: 'HTML',
-          reply_markup: keyboard.reply_markup,
-        });
-      } else {
+
+      // --- 🚀 ИСПРАВЛЕНИЕ КРАША (Error 400) ---
+      try {
+        if (product.imageUrl) {
+          // Пытаемся отправить с фото
+          await ctx.replyWithPhoto(product.imageUrl, {
+            caption: caption,
+            parse_mode: 'HTML',
+            reply_markup: keyboard.reply_markup,
+          });
+        } else {
+          // Если imageUrl нет, просто отправляем текст
+          await ctx.replyWithHTML(caption, keyboard);
+        }
+      } catch (photoError) {
+        // Если отправка фото НЕ УДАЛАСЬ (400 Bad Request и т.д.)
+        console.error(`[CRITICAL] Ошибка загрузки фото ${product.imageUrl}:`, photoError.message);
+        // ...отправляем сообщение БЕЗ ФОТО, чтобы бот не упал
         await ctx.replyWithHTML(caption, keyboard);
       }
+      // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
     }
-  };
+  } catch (dbError) {
+    console.error("[CRITICAL] Ошибка БД в showProductsByFlag:", dbError);
+    await ctx.reply('Произошла ошибка при загрузке товаров. Попробуйте позже.');
+  }
+};
 
   // --- 5. ОБРАБОТЧИКИ КНОПОК (HEARS) ---
 
@@ -3385,6 +3430,7 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
 // ----------------------------------------------------------------
 // --- КОНЕЦ БЭКЕНДА ДЛЯ INSTAGRAM БОТА ---
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
