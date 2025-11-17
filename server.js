@@ -17,7 +17,7 @@ import { google } from 'googleapis';
 import { Telegraf, Markup } from 'telegraf';
 import LocalSession from 'telegraf-session-local';
 import axios from 'axios';
-import { TelegrafI18n } from 'telegraf-i18n'; // <-- НОВЫЙ ИМПОРТ
+import { I18n } from 'i18n-telegraf'; // <-- НОВЫЙ ИМПОРТ
 
 
 dotenv.config();
@@ -2531,11 +2531,11 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
   // --- 1. НАСТРОЙКА I18N (ИНТЕРНАЦИОНАЛИЗАЦИЯ) ---
-  const i18n = new TelegrafI18n({
-    defaultLanguage: 'ru',
-    allowMissing: true, // Не падать, если перевод отсутствует
-    directory: path.resolve(__dirname, 'locales'), // Путь к твоей папке
-  });
+  const i18n = new I18n({
+  defaultLanguage: 'ru',
+  allowMissing: true,
+  directory: path.resolve(__dirname, 'locales'),
+});
 
   // --- 2. НАСТРОЙКА СЕССИЙ ---
   // (Для хранения языка, корзины и т.д.)
