@@ -17,9 +17,7 @@ import { google } from 'googleapis';
 import { Telegraf, Markup } from 'telegraf';
 import LocalSession from 'telegraf-session-local';
 import axios from 'axios';
-import fs from 'fs'; 
-import path from 'path'; 
-import TelegramBot from 'node-telegram-bot-api';
+
 
 dotenv.config();
 
@@ -2524,14 +2522,15 @@ scheduleDailyCheck();
 // sendBirthdayGreetings();
 // --- Telegram Bot Logic ---
 
-// --- Telegram Bot Logic ---
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (token) {
   console.log('Telegram Bot Token найден, запускаем бота...');
   
-  // ❗️ ИСПРАВЛЕНИЕ:
-  // Этот `TelegramBot` теперь ссылается на `import` со строки 10
-  // Этот `fs` теперь ссылается на `import` со строки 3
+  // ❗️ ОШИБКИ БОЛЬШЕ НЕТ.
+  // Мы НЕ используем `require('fs')` или `require('TelegramBot')`
+  // Мы используем `fs` и `TelegramBot`, которые уже импортированы
+  // в строках 3 и 10 вашего server.js
+
   const bot = new TelegramBot(token, { polling: true });
 
   // --- 1. Загрузка переводов ---
@@ -2557,17 +2556,27 @@ if (token) {
    * @returns {string} - Переведенная строка
    */
   const t = (lang, key, replacements = {}) => {
-    const langKey = supportedLangs.includes(lang) ? lang : 'ru';
+    // 1. Устанавливаем язык по умолчанию, если язык пользователя не поддерживается
+    const langKey = supportedLangs.includes(lang) ? lang : 'ru'; // 'ru' как fallback
+    
+    // 2. Находим перевод
     let text = locales[langKey] ? getNestedProperty(locales[langKey], key) : null;
+    
+    // 3. Если ключ не найден на нужном языке, ищем на fallback языке
     if (!text && langKey !== 'ru') {
       text = locales['ru'] ? getNestedProperty(locales['ru'], key) : null;
     }
+    
+    // 4. Если ключ вообще не найден, возвращаем сам ключ
     if (!text) {
       return key;
     }
+    
+    // 5. Заменяем плейсхолдеры (напр. {userName})
     Object.keys(replacements).forEach(rKey => {
       text = text.replace(`{${rKey}}`, replacements[rKey]);
     });
+    
     return text;
   };
 
@@ -2577,6 +2586,8 @@ if (token) {
   }
 
   // --- 2. Функции для создания Клавиатур ---
+  // (Теперь это функции, принимающие язык)
+
   const getMainMenu = (lang) => ({
     reply_markup: {
       keyboard: [
@@ -2601,6 +2612,7 @@ if (token) {
     }
   });
 
+  // (id = 1 это пример для "SET ICON")
   const getSetIconMenu = (lang) => ({
     reply_markup: {
       inline_keyboard: [
@@ -2623,14 +2635,22 @@ if (token) {
   // --- 3. Обработчик команды /start ---
   bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    const lang = msg.from.language_code || 'ru';
+    const lang = msg.from.language_code || 'ru'; // Определяем язык пользователя
     const userName = msg.from.first_name || 'гость';
 
-    // Используем имя файла из вашего лога сборки: new_sushi_logo-UYS3lJVp.jpg
+    // ❗️ ВАЖНО: Замените 'sushi-icon-promo-nl.onrender.com' на ваш реальный домен
+    // Логотип должен быть доступен по публичной ссылке
+    // Файл 'new_sushi_logo.jpg'
+    // Он будет доступен, т.к. `app.use(express.static...` настроен на 'frontend/dist'
+    // Лог сборки показывает, что файл логотипа называется: 'new_sushi_logo-UYS3lJVp.jpg'
+    
+    // ❗️ Используем имя файла из лога сборки!
     const logoUrl = 'https://sushi-icon-promo-nl.onrender.com/assets/new_sushi_logo-UYS3lJVp.jpg'; 
     
+    // Отправляем логотип
     bot.sendPhoto(chatId, logoUrl)
       .then(() => {
+        // После логотипа отправляем приветствие и меню
         bot.sendMessage(
           chatId,
           t(lang, 'bot.welcome', { userName }),
@@ -2638,6 +2658,7 @@ if (token) {
         );
       })
       .catch((err) => {
+        // Если фото не отправилось (напр. неверный URL), просто шлем текст
         console.error("Ошибка отправки фото:", err.message);
         bot.sendMessage(
           chatId,
@@ -2647,19 +2668,24 @@ if (token) {
       });
   });
 
-  // --- 4. ЕДИНЫЙ обработчик для Reply-кнопок ---
+  // --- 4. ЕДИНЫЙ обработчик для Reply-кнопок (вместо onText) ---
   bot.on('message', (msg) => {
+    // Игнорируем команды, т.к. для них есть onText
     if (msg.text && msg.text.startsWith('/')) return;
+    // Игнорируем, если текста нет (например, отправка фото)
     if (!msg.text) return;
 
     const chatId = msg.chat.id;
     const lang = msg.from.language_code || 'ru';
     const text = msg.text;
 
+    // Ищем, совпадает ли текст сообщения с какой-либо из кнопок
     switch (text) {
       case t(lang, 'buttons.menu'):
         bot.sendMessage(chatId, t(lang, 'bot.menu_title'), getCategoriesMenu(lang));
         break;
+      
+      // --- Заглушки для остальных кнопок ---
       case t(lang, 'buttons.popular'):
         bot.sendMessage(chatId, t(lang, 'bot.section_popular'));
         break;
@@ -2681,19 +2707,24 @@ if (token) {
     }
   });
 
+
   // --- 5. ГЛАВНЫЙ ОБРАБОТЧИК Инлайн-кнопок ---
   bot.on('callback_query', (query) => {
     const chatId = query.message.chat.id;
     const messageId = query.message.message_id;
-    const data = query.data;
-    const lang = query.from.language_code || 'ru';
+    const data = query.data; // callback_data
+    const lang = query.from.language_code || 'ru'; // Язык пользователя
 
     switch (data) {
+      
+      // --- Показать меню категорий (из "Назад" или "Добавить еще") ---
       case 'show_categories':
+        // Если сообщение было с фото (caption), его надо удалить и отправить текст
         if (query.message.photo) {
           bot.deleteMessage(chatId, messageId);
           bot.sendMessage(chatId, t(lang, 'bot.menu_title'), getCategoriesMenu(lang));
         } else {
+          // Если это было текстовое сообщение, редактируем его
           bot.editMessageText(t(lang, 'bot.menu_title'), {
             chat_id: chatId,
             message_id: messageId,
@@ -2702,13 +2733,15 @@ if (token) {
         }
         break;
 
+      // --- Вернуться в главное меню ---
       case 'back_to_main':
         bot.deleteMessage(chatId, messageId);
         bot.sendMessage(chatId, t(lang, 'bot.main_menu'), getMainMenu(lang));
         break;
 
+      // --- ПРИМЕР: Нажата категория "Сеты" ---
       case 'category_sets':
-        // ❗️ ЗАМЕНИТЕ НА ВАШЕ ФОТО СЕТА
+        // ❗️ ВАЖНО: Замените на публичный URL фотографии вашего сета
         const setPhotoUrl = 'https://i.imgur.com/g19Ew4M.png'; // ◁ ПРИМЕР ФОТО
         
         bot.deleteMessage(chatId, messageId);
@@ -2718,12 +2751,17 @@ if (token) {
         });
         break;
         
+      // --- ПРИМЕР: Нажата кнопка "Добавить в корзину" (для сета ID=1) ---
       case 'cart_add_1':
-        const productName = 'SET ICON';
+        const productName = 'SET ICON'; // ◁ (В будущем это будет браться из БД)
+        
+        // 1. Всплывающее уведомление
         bot.answerCallbackQuery(query.id, {
           text: t(lang, 'bot.cart_added', { productName }),
           show_alert: true
         });
+        
+        // 2. Редактируем подпись к фото
         bot.editMessageCaption(
           `${t(lang, 'bot.set_icon_caption')}\n\n${t(lang, 'bot.cart_added_prompt', { productName })}`, 
           {
@@ -2734,6 +2772,7 @@ if (token) {
         );
         break;
 
+      // --- Обработка других кнопок (заглушки) ---
       case 'category_rolls':
         bot.answerCallbackQuery(query.id, t(lang, 'bot.section_rolls'));
         break;
@@ -2742,6 +2781,7 @@ if (token) {
         break;
     }
 
+    // (Опционально) Убираем "часики" на кнопке, если это не cart_add
     if (!data.startsWith('cart_add_')) {
         bot.answerCallbackQuery(query.id);
     }
