@@ -2527,178 +2527,22 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
 } else {
   
   const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-  // --- НАЧАЛО: Клавиатуры для Telegram-бота ---
 
-// 1. Главное меню (кнопки внизу)
-const mainMenu = {
-  reply_markup: {
-    keyboard: [
-      [{ text: '📖 Меню' }, { text: '🔥 Популярное' }],
-      [{ text: '🛍 Сделать заказ' }, { text: '🎁 Акции' }],
-      [{ text: '⭐ Рекомендации шефа' }, { text: '🧰 Корзина' }],
-      [{ text: '👨‍💻 Оператор' }]
-    ],
-    resize_keyboard: true,
-  }
-};
-
-// 2. Меню категорий (инлайн-кнопки)
-const categoriesMenu = {
-  reply_markup: {
-    inline_keyboard: [
-      [{ text: '🍣 Роллы', callback_data: 'category_rolls' }, { text: '🥡 Сеты', callback_data: 'category_sets' }],
-      [{ text: '🔥 Горячие роллы', callback_data: 'category_hot_rolls' }, { text: '🍕 Пиццы', callback_data: 'category_pizza' }],
-      [{ text: '👻 Детское меню', callback_data: 'category_kids' }, { text: '🥤 Напитки', callback_data: 'category_drinks' }],
-      [{ text: '⚡️ Соусы', callback_data: 'category_sauces' }],
-      [{ text: '⬅ Назад в главное меню', callback_data: 'back_to_main' }]
-    ]
-  }
-};
-
-// 3. Карточка товара (для примера SET ICON, id = 1)
-const setIconMenu = {
-  reply_markup: {
-    inline_keyboard: [
-      [{ text: '➕ Добавить в корзину', callback_data: 'cart_add_1' }],
-      [{ text: '❤️ В избранное', callback_data: 'fav_add_1' }],
-      [{ text: '⬅ Назад к категориям', callback_data: 'show_categories' }]
-    ]
-  }
-};
-
-// 4. Кнопки после добавления в корзину
-const afterCartMenu = {
-  reply_markup: {
-    inline_keyboard: [
-      [{ text: '➕ Добавить ещё', callback_data: 'show_categories' }],
-      [{ text: '⬅ Меню', callback_data: 'back_to_main' }]
-    ]
-  }
-};
-
-// --- КОНЕЦ: Клавиатуры для Telegram-бота ---
   // Подключаем сессии (для корзины)
   bot.use((new LocalSession({ database: 'sessions.json' })).middleware());
   
   // Команда /start
-  bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  const userName = msg.from.first_name || 'гость';
-  
-  bot.sendMessage(
-    chatId,
-    `Добро пожаловать в SUSHI ICON, ${userName}! 🍣\n\nВыберите опцию в меню:`,
-    mainMenu
-  );
-});
-  bot.onText(/📖 Меню/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(
-    chatId,
-    'Пожалуйста, выберите категорию:',
-    categoriesMenu
-  );
-});
+  bot.start((ctx) => {
+    ctx.reply(
+      'Добро пожаловать в Sushi Icon! 🍣\n' +
+      'Нажмите /menu, чтобы увидеть меню.',
+      Markup.keyboard([
+        ['/menu 📖 Меню'],
+        ['/cart 🛒 Корзина', '/help ❓ Помощь']
+      ]).resize()
+    );
+  });
 
-// 2. Остальные кнопки (заглушки)
-bot.onText(/🔥 Популярное/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Здесь будет раздел "Популярное" 🔥');
-});
-
-bot.onText(/🛍 Сделать заказ/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Здесь будет оформление заказа 🛍');
-});
-
-bot.onText(/🎁 Акции/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Здесь будут "Акции" 🎁');
-});
-
-bot.onText(/⭐ Рекомендации шефа/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Здесь будут "Рекомендации" ⭐');
-});
-
-bot.onText(/🧰 Корзина/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Здесь будет ваша "Корзина" 🧰');
-});
-
-bot.onText(/👨‍💻 Оператор/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Здесь будет связь с "Оператором" 👨‍💻');
-});
-
-    bot.on('callback_query', (query) => {
-  const chatId = query.message.chat.id;
-  const messageId = query.message.message_id;
-  const data = query.data; // Это 'callback_data' с кнопки
-
-  // Используем switch для обработки разных кнопок
-  switch (data) {
-    
-    // --- Показать меню категорий ---
-    case 'show_categories':
-      bot.editMessageText('Пожалуйста, выберите категорию:', {
-        chat_id: chatId,
-        message_id: messageId,
-        ...categoriesMenu // ...categoriesMenu разворачивает { reply_markup: { ... } }
-      });
-      break;
-
-    // --- Вернуться в главное меню ---
-    case 'back_to_main':
-      // Удаляем инлайн-меню
-      bot.deleteMessage(chatId, messageId);
-      // Отправляем подтверждение (главное меню с Reply-кнопками уже и так есть)
-      bot.sendMessage(chatId, 'Вы в главном меню.', mainMenu);
-      break;
-
-    // --- ПРИМЕР: Нажата категория "Сеты" ---
-    case 'category_sets':
-      const photoUrl = 'https://i.imgur.com/g19Ew4M.png'; // ❗️ ЗАМЕНИТЕ НА ВАШЕ ФОТО
-      const caption = '🥡 SET ICON — 24€\n\nСостав: [Тут будет описание состава...]';
-      
-      // Удаляем старое сообщение (список категорий)
-      bot.deleteMessage(chatId, messageId);
-      // Отправляем новое с фото и кнопками товара
-      bot.sendPhoto(chatId, photoUrl, {
-        caption: caption,
-        ...setIconMenu
-      });
-      break;
-      
-    // --- ПРИМЕР: Нажата кнопка "Добавить в корзину" ---
-    case 'cart_add_1':
-      const productName = 'SET ICON';
-      
-      // 1. Отвечаем во всплывающем окне
-      bot.answerCallbackQuery(query.id, {
-        text: `✅ ${productName} добавлен в корзину!`,
-        show_alert: true // Показываем как большое уведомление
-      });
-      
-      // 2. Редактируем сообщение, добавляя новые кнопки
-      bot.editMessageCaption(
-        `🥡 SET ICON — 24€\n\nСостав: [...]\n\n🛍 ${productName} добавлен в корзину! Хотите продолжить?`, 
-        {
-          chat_id: chatId,
-          message_id: messageId,
-          ...afterCartMenu
-        }
-      );
-      break;
-
-    // --- Обработка других кнопок (пока заглушки) ---
-    case 'category_rolls':
-      bot.answerCallbackQuery(query.id, 'Вы выбрали Роллы (пока в разработке)');
-      break;
-    case 'fav_add_1':
-      bot.answerCallbackQuery(query.id, '❤️ Добавлено в избранное!');
-      break;
-  }
-
-  // (Опционально) Убираем "часики" на кнопке
-  if (!data.startsWith('cart_add_')) {
-      bot.answerCallbackQuery(query.id);
-  }
-});
   // Команда /menu (подробнее в Шаге 4)
   bot.command('menu', async (ctx) => {
      try {
