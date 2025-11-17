@@ -1,0 +1,40 @@
+{
+  "bot": {
+    "welcome": "Welcome to SUSHI ICON, {userName}! 🍣\n\nChoose an option from the menu:",
+    "menu_title": "Please select a category:",
+    "main_menu": "You are in the main menu.",
+    "cart_added": "✅ {productName} added to cart!",
+    "cart_added_prompt": "🛍 {productName} added to cart. Would you like to continue?",
+    "set_icon_caption": "🥡 SET ICON — 24€\n\nIngredients: [Ingredients description here...]",
+    "section_promo": "Here are the 'Promotions' 🎁",
+    "section_popular": "Here is the 'Popular' section 🔥",
+    "section_order": "Here you can 'Make an order' 🛍",
+    "section_chef": "Here are the 'Chef's recommendations' ⭐",
+    "section_cart": "Here is your 'Cart' 🧰",
+    "section_operator": "Contact 'Operator' 👨‍💻",
+    "section_rolls": "You selected Rolls (work in progress)",
+    "fav_added": "❤️ Added to favorites!"
+  },
+  "buttons": {
+    "menu": "📖 Menu",
+    "popular": "🔥 Popular",
+    "order": "🛍 Make order",
+    "promo": "🎁 Promotions",
+    "chef": "⭐ Chef's recommendations",
+    "cart": "🧰 Cart",
+    "operator": "👨‍💻 Operator",
+    "cat_rolls": "🍣 Rolls",
+    "cat_sets": "🥡 Sets",
+    "cat_hot": "🔥 Hot Rolls",
+    "cat_pizza": "🍕 Pizza",
+    "cat_kids": "👻 Kids Menu",
+    "cat_drinks": "🥤 Drinks",
+    "cat_sauces": "⚡️ Sauces",
+    "back_main": "⬅ Back to main menu",
+    "back_categories": "⬅ Back to categories",
+    "cart_add": "➕ Add to cart",
+    "favorite": "❤️ Add to favorites",
+    "add_more": "➕ Add more",
+    "menu_short": "⬅ Menu"
+  }
+}
