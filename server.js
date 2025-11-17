@@ -17,6 +17,7 @@ import { google } from 'googleapis';
 import { Telegraf, Markup } from 'telegraf';
 import LocalSession from 'telegraf-session-local';
 import axios from 'axios';
+import { TelegrafI18n } from 'telegraf-i18n'; // <-- НОВЫЙ ИМПОРТ
 
 
 dotenv.config();
@@ -2520,175 +2521,566 @@ scheduleDailyCheck();
 
 // (Опционально) Запустить проверку один раз при старте сервера
 // sendBirthdayGreetings();
-// <-- ⬇️ ВСТАВЬ ВЕСЬ КОД ТЕЛЕГРАМ-БОТА ЗДЕСЬ ⬇️ -->
-//
+let bot; // Объявляем бота здесь, чтобы он был доступен для Instagram
+
 if (!process.env.TELEGRAM_BOT_TOKEN) {
   console.error('Ошибка: TELEGRAM_BOT_TOKEN не найден в .env');
 } else {
+  console.log('✅ TELEGRAM_BOT_TOKEN найден. Запуск бота...');
   
-  const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+  bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-  // Подключаем сессии (для корзины)
-  bot.use((new LocalSession({ database: 'sessions.json' })).middleware());
-  
-  // Команда /start
-  bot.start((ctx) => {
-    ctx.reply(
-      'Добро пожаловать в Sushi Icon! 🍣\n' +
-      'Нажмите /menu, чтобы увидеть меню.',
-      Markup.keyboard([
-        ['/menu 📖 Меню'],
-        ['/cart 🛒 Корзина', '/help ❓ Помощь']
-      ]).resize()
-    );
+  // --- 1. НАСТРОЙКА I18N (ИНТЕРНАЦИОНАЛИЗАЦИЯ) ---
+  const i18n = new TelegrafI18n({
+    defaultLanguage: 'ru',
+    allowMissing: true, // Не падать, если перевод отсутствует
+    directory: path.resolve(__dirname, 'locales'), // Путь к твоей папке
   });
 
-  // Команда /menu (подробнее в Шаге 4)
-  bot.command('menu', async (ctx) => {
-     try {
-       // Код для загрузки меню из Prisma
-       const categories = await prisma.productCategory.findMany({
-         include: { products: true }
-       });
-       
-       if (categories.length === 0) {
-         return ctx.reply('Извините, наше меню сейчас пустое. Загляните позже!');
-       }
-       
-       for (const category of categories) {
-         let menuText = `<b>${category.name}</b>\n\n`;
-         for (const product of category.products) {
-           // Формируем кнопку "Добавить" с ID продукта
-           menuText += `${product.name} - ${product.price}€\n`;
-           menuText += `/add_${product.id}\n\n`; 
-         }
-         // Отправляем как HTML, чтобы тег <b> работал
-         await ctx.replyWithHTML(menuText);
-       }
-       
-     } catch (error) {
-       console.error("Ошибка при загрузке меню:", error);
-       ctx.reply('Произошла ошибка при загрузке меню. Попробуйте позже.');
-     }
-  });
+  // --- 2. НАСТРОЙКА СЕССИЙ ---
+  // (Для хранения языка, корзины и т.д.)
+  const session = new LocalSession({ database: 'sessions.json' });
+  bot.use(session.middleware());
+  bot.use(i18n.middleware());
 
-  // Обработчик добавления в корзину (реагирует на /add_1, /add_2 и т.д.)
-  bot.hears(/\/add_(\d+)/, async (ctx) => {
-    const productId = parseInt(ctx.match[1]); // Получаем ID
+  // --- 3. ХЕЛПЕРЫ (Вспомогательные функции) ---
 
-    // Ищем продукт в БД
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) return ctx.reply('Такой продукт не найден.');
+  /**
+   * Находит или создает пользователя в БД по его Telegram ID
+   */
+  const getOrCreateUser = async (ctx) => {
+    const telegramId = BigInt(ctx.from.id); // Prisma требует BigInt
+    let user = await prisma.customer.findUnique({
+      where: { telegramId: telegramId },
+    });
 
-    // Инициализируем корзину в сессии
-    if (!ctx.session.cart) {
-      ctx.session.cart = [];
+    if (!user) {
+      // Пытаемся создать "заглушку" пользователя.
+      // В реальном приложении здесь нужно запросить телефон/email.
+      // Но для "Избранного" нам нужен хотя бы ID.
+      try {
+        user = await prisma.customer.create({
+          data: {
+            telegramId: telegramId,
+            firstName: ctx.from.first_name,
+            lastName: ctx.from.last_name || '',
+            languageCode: ctx.from.language_code,
+            // Генерируем "фейковые" данные для полей NOT NULL
+            phoneNumber: `TELEGRAM_${telegramId}`, 
+            country: 'XX',
+            discountCode: `TG_${telegramId}_${Date.now()}`
+          },
+        });
+      } catch (e) {
+        console.error("Ошибка создания 'заглушки' пользователя:", e);
+        // Это может случиться, если discountCode или phoneNumber не уникальны
+        // в очень редком случае.
+        return null;
+      }
     }
     
-    // Добавляем в корзину
-    ctx.session.cart.push(product);
-    ctx.reply(`✅ ${product.name} добавлен в корзину! \n/cart - посмотреть`);
-  });
+    // Обновляем язык в сессии и в БД
+    if (ctx.session.lang && user.languageCode !== ctx.session.lang) {
+      await prisma.customer.update({
+        where: { id: user.id },
+        data: { languageCode: ctx.session.lang }
+      });
+      user.languageCode = ctx.session.lang;
+    }
 
-  // Команда /cart
-  bot.command('cart', (ctx) => {
-    if (!ctx.session.cart || ctx.session.cart.length === 0) {
-      return ctx.reply('Ваша корзина пуста.');
+    return user;
+  };
+
+  /**
+   * Получает локализованное поле из объекта (product, category)
+   */
+  const getL10nField = (ctx, item, fieldName) => {
+    const lang = ctx.session.lang || 'ru';
+    return item[`${fieldName}_${lang}`] || item[`${fieldName}_ru`]; // Фоллбэк на 'ru'
+  };
+
+  /**
+   * Показывает главное меню
+   */
+  const showMainMenu = (ctx) => {
+    const keyboard = Markup.keyboard([
+      [ctx.i18n.t('buttons.menu'), ctx.i18n.t('buttons.popular')],
+      // [ctx.i18n.t('buttons.order')], // "Сделать заказ" - это то же самое, что "Меню"
+      [ctx.i18n.t('buttons.promotions'), ctx.i18n.t('buttons.chef')],
+      [ctx.i18n.t('buttons.cart'), ctx.i18n.t('buttons.operator')],
+    ]).resize();
+    ctx.reply(ctx.i18n.t('messages.main_menu_title'), keyboard);
+  };
+
+  /**
+   * Показывает логотип (если он есть)
+   */
+  const sendLogo = async (ctx) => {
+    const LOGO_URL = process.env.TELEGRAM_LOGO_URL; // Добавь в .env URL твоего лого
+    if (LOGO_URL) {
+      try {
+        await ctx.replyWithPhoto(LOGO_URL);
+      } catch (e) {
+        console.warn('Не удалось загрузить логотип по URL:', LOGO_URL, e.message);
+      }
+    }
+  };
+
+  // --- 4. ОБРАБОТЧИКИ КОМАНД ---
+
+  /**
+   * /start - Начало работы и выбор языка
+   */
+  bot.start(async (ctx) => {
+    // Инициализируем сессию
+    ctx.session.lang = ctx.session.lang || 'ru';
+    ctx.session.cart = ctx.session.cart || [];
+    
+    // Пытаемся найти пользователя и установить его язык
+    const user = await getOrCreateUser(ctx);
+    if (user && user.languageCode) {
+      ctx.session.lang = user.languageCode;
+      ctx.i18n.locale(user.languageCode);
     }
     
-    let total = 0;
-    let cartText = '🛒 <b>Ваша корзина:</b>\n';
+    await sendLogo(ctx);
     
-    ctx.session.cart.forEach(p => {
-      cartText += ` - ${p.name} (${p.price}€)\n`;
-      total += p.price;
+    const langKeyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback('🇷🇺 Русский', 'set_lang_ru'),
+        Markup.button.callback('🇺🇦 Українська', 'set_lang_uk'),
+      ],
+      [
+        Markup.button.callback('🇬🇧 English', 'set_lang_en'),
+        Markup.button.callback('🇳🇱 Nederlands', 'set_lang_nl'),
+      ],
+    ]);
+    
+    await ctx.reply(ctx.i18n.t('messages.welcome'), langKeyboard);
+  });
+
+  /**
+   * Обработчики выбора языка
+   */
+  bot.action(/set_lang_(.*)/, async (ctx) => {
+    const lang = ctx.match[1];
+    ctx.session.lang = lang;
+    ctx.i18n.locale(lang);
+    
+    // Сохраняем язык в БД
+    await getOrCreateUser(ctx);
+    
+    await ctx.answerCbQuery(`Язык установлен: ${lang}`);
+    await ctx.deleteMessage(); // Удаляем кнопки выбора языка
+    showMainMenu(ctx);
+  });
+
+  /**
+   * Показывает категории
+   */
+  const showCategories = async (ctx) => {
+    const categories = await prisma.productCategory.findMany();
+    const buttons = categories.map(cat => {
+      return [
+        Markup.button.callback(
+          getL10nField(ctx, cat, 'name'), // 🍣 Роллы
+          `category_${cat.id}`
+        )
+      ];
     });
     
-    cartText += `\n<b>Итого: ${total.toFixed(2)}€</b>`;
+    buttons.push([Markup.button.callback(ctx.i18n.t('buttons.back_to_main'), 'main_menu')]);
     
-    // Кнопки апселла и оформления
-    ctx.replyWithHTML(cartText, 
-       Markup.inlineKeyboard([
-         [ Markup.button.callback('🎁 Добавить Картошку Фри (30% скидка)', 'upsell_fries') ],
-         [ Markup.button.callback('✅ Оформить заказ', 'checkout') ]
-       ])
-    );
-  });
-
-  // Обработчик кнопки апселла
-  bot.action('upsell_fries', async (ctx) => {
-    // !! Здесь нужна логика добавления картошки (найти по ID или имени)
-    const friesId = 123; // ID картошки в твоей БД
-    const fries = await prisma.product.findUnique({ where: { id: friesId } });
+    await ctx.reply(ctx.i18n.t('messages.choose_category'), Markup.inlineKeyboard(buttons));
+  };
+  
+  /**
+   * Показывает список продуктов в категории
+   */
+  const showProducts = async (ctx, categoryId) => {
+    const products = await prisma.product.findMany({
+      where: { categoryId: categoryId },
+    });
     
-    if(fries) {
-      if (!ctx.session.cart) ctx.session.cart = [];
-      ctx.session.cart.push(fries);
-      await ctx.answerCbQuery('Картошка фри добавлена!'); // Убираем часики
-      ctx.reply('✅ Картошка добавлена! /cart');
-    } else {
-      await ctx.answerCbQuery('Ошибка: Картошка не найдена в меню.');
+    if (products.length === 0) {
+      await ctx.reply(ctx.i18n.t('messages.no_products_in_category'));
+      return;
     }
+    
+    // Отправляем каждый продукт отдельной "карточкой"
+    for (const product of products) {
+      const name = getL10nField(ctx, product, 'name');
+      const ingredients = getL10nField(ctx, product, 'ingredients');
+      const caption = `<b>${name} — ${product.price}€</b>\n\n${ingredients || ''}`;
+      
+      // Проверяем, в избранном ли
+      const user = await getOrCreateUser(ctx);
+      const isFavorite = user ? await prisma.favoriteProduct.findUnique({
+        where: { customerId_productId: { customerId: user.id, productId: product.id } }
+      }) : false;
+      
+      const favButton = isFavorite
+        ? Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${product.id}`)
+        : Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${product.id}`);
+
+      const keyboard = Markup.inlineKeyboard([
+        Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${product.id}`),
+        favButton
+      ]);
+
+      if (product.imageUrl) {
+        await ctx.replyWithPhoto(product.imageUrl, {
+          caption: caption,
+          parse_mode: 'HTML',
+          reply_markup: keyboard.reply_markup,
+        });
+      } else {
+        await ctx.replyWithHTML(caption, keyboard);
+      }
+    }
+    
+    // Кнопка "Назад"
+    await ctx.reply(
+      'Нажмите, чтобы вернуться к категориям:',
+      Markup.inlineKeyboard([
+        [Markup.button.callback(ctx.i18n.t('buttons.back_to_categories'), 'show_categories')]
+      ])
+    );
+  };
+  
+  /**
+   * Показывает продукты по флагу (Popular, Chef, Promo)
+   */
+  const showProductsByFlag = async (ctx, flagName, emptyMessageKey) => {
+    const whereClause = {};
+    whereClause[flagName] = true; // e.g. { isPopular: true }
+
+    const products = await prisma.product.findMany({ where: whereClause });
+
+    if (products.length === 0) {
+      await ctx.reply(ctx.i18n.t(emptyMessageKey));
+      return;
+    }
+    
+    for (const product of products) {
+      // (Логика та же, что и в showProducts)
+      const name = getL10nField(ctx, product, 'name');
+      const ingredients = getL10nField(ctx, product, 'ingredients');
+      const caption = `<b>${name} — ${product.price}€</b>\n\n${ingredients || ''}`;
+      
+      const user = await getOrCreateUser(ctx);
+      const isFavorite = user ? await prisma.favoriteProduct.findUnique({
+        where: { customerId_productId: { customerId: user.id, productId: product.id } }
+      }) : false;
+      
+      const favButton = isFavorite
+        ? Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${product.id}`)
+        : Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${product.id}`);
+
+      const keyboard = Markup.inlineKeyboard([
+        Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${product.id}`),
+        favButton
+      ]);
+      
+      if (product.imageUrl) {
+        await ctx.replyWithPhoto(product.imageUrl, {
+          caption: caption,
+          parse_mode: 'HTML',
+          reply_markup: keyboard.reply_markup,
+        });
+      } else {
+        await ctx.replyWithHTML(caption, keyboard);
+      }
+    }
+  };
+
+  // --- 5. ОБРАБОТЧИКИ КНОПОК (HEARS) ---
+
+  // 📖 Меню
+  bot.hears(new RegExp('📖'), showCategories);
+  
+  // 🔥 Популярное
+  bot.hears(new RegExp('🔥'), (ctx) => 
+    showProductsByFlag(ctx, 'isPopular', 'messages.no_products_popular')
+  );
+  
+  // 🛍 Сделать заказ (дублирует "Меню")
+  bot.hears(new RegExp('🛍'), showCategories);
+
+  // 🎁 Акции
+  bot.hears(new RegExp('🎁'), (ctx) => 
+    showProductsByFlag(ctx, 'isPromotion', 'messages.no_products_promotions')
+  );
+
+  // ⭐ Рекомендации шефа
+  bot.hears(new RegExp('⭐'), (ctx) => 
+    showProductsByFlag(ctx, 'isChefRecommendation', 'messages.no_products_chef')
+  );
+  
+  // 👨‍💻 Оператор
+  bot.hears(new RegExp('👨‍💻'), (ctx) => 
+    ctx.replyWithHTML(ctx.i18n.t('messages.operator_contact'))
+  );
+
+  // 🧰 Корзина
+  bot.hears(new RegExp('🧰'), async (ctx) => {
+    const cart = ctx.session.cart || [];
+    
+    if (cart.length === 0) {
+      return ctx.reply(ctx.i18n.t('messages.cart_empty'));
+    }
+
+    let total = 0;
+    let cartText = ctx.i18n.t('messages.cart_title');
+    
+    // Группируем товары
+    const productCounts = cart.reduce((acc, product) => {
+      acc[product.id] = (acc[product.id] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Нужен один запрос в БД для получения имен
+    const productsInCart = await prisma.product.findMany({
+      where: { id: { in: cart.map(p => p.id) } }
+    });
+    
+    for (const product of productsInCart) {
+      const count = productCounts[product.id];
+      const name = getL10nField(ctx, product, 'name');
+      cartText += ` - ${name} x${count} (${(product.price * count).toFixed(2)}€)\n`;
+      total += product.price * count;
+    }
+    
+    cartText += ctx.i18n.t('messages.cart_total', { total: total.toFixed(2) });
+
+    await ctx.replyWithHTML(cartText, Markup.inlineKeyboard([
+      [Markup.button.callback(ctx.i18n.t('buttons.checkout'), 'checkout')]
+    ]));
   });
 
-  // Обработчик кнопки "Оформить заказ"
-  bot.action('checkout', (ctx) => {
-    ctx.reply('Для оформления заказа, пожалуйста, отправьте нам свой номер телефона.',
-       Markup.keyboard([
-         // Кнопка, которая запрашивает у пользователя разрешение на телефон
-         Markup.button.contactRequest('📱 Отправить мой номер'), 
-         'Отмена'
-       ]).resize().oneTime()
+  // --- 6. ОБРАБОТЧИКИ КНОПОК (ACTIONS) ---
+
+  // Кнопка "Назад в главное меню"
+  bot.action('main_menu', async (ctx) => {
+    await ctx.deleteMessage();
+    showMainMenu(ctx);
+  });
+
+  // Кнопка "Назад к категориям"
+  bot.action('show_categories', async (ctx) => {
+    await ctx.deleteMessage();
+    await showCategories(ctx);
+  });
+  
+  // Нажатие на категорию
+  bot.action(/category_(\d+)/, async (ctx) => {
+    const categoryId = parseInt(ctx.match[1]);
+    await ctx.deleteMessage(); // Удаляем список категорий
+    await showProducts(ctx, categoryId);
+  });
+
+  // ➕ Добавить в корзину
+  bot.action(/add_cart_(\d+)/, async (ctx) => {
+    const productId = parseInt(ctx.match[1]);
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    
+    if (product) {
+      ctx.session.cart = ctx.session.cart || [];
+      ctx.session.cart.push(product); // Добавляем *весь* объект, как в старом коде
+      
+      const name = getL10nField(ctx, product, 'name');
+      
+      // Ответ с кнопками (как ты просил)
+      await ctx.replyWithHTML(
+        ctx.i18n.t('messages.added_to_cart', { productName: name }),
+        Markup.inlineKeyboard([
+          [Markup.button.callback(ctx.i18n.t('buttons.add_more'), 'show_categories')], // "Добавить еще" -> вернем к категориям
+          [Markup.button.callback(ctx.i18n.t('buttons.go_to_cart'), 'go_to_cart')] // "Перейти в корзину"
+        ])
+      );
+    }
+    await ctx.answerCbQuery();
+  });
+  
+  // Кнопка "Перейти в корзину" из сообщения "Добавлено!"
+  bot.action('go_to_cart', async (ctx) => {
+    await ctx.deleteMessage();
+    // Вызываем обработчик "🧰 Корзина"
+    bot.settings.global.handler(ctx, new RegExp('🧰'));
+  });
+
+  // ❤️ Добавить в избранное
+  bot.action(/add_fav_(\d+)/, async (ctx) => {
+    const user = await getOrCreateUser(ctx);
+    if (!user) return ctx.answerCbQuery('Ошибка: не удалось найти профиль.');
+    
+    const productId = parseInt(ctx.match[1]);
+    
+    await prisma.favoriteProduct.create({
+      data: {
+        customerId: user.id,
+        productId: productId
+      }
+    });
+    
+    // Обновляем кнопку
+    await ctx.editMessageReplyMarkup({
+      inline_keyboard: [
+        [
+          Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${productId}`),
+          Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${productId}`)
+        ]
+      ]
+    });
+    
+    await ctx.answerCbQuery(ctx.i18n.t('messages.added_to_favorites'));
+  });
+
+  // 💔 Убрать из избранного
+  bot.action(/rem_fav_(\d+)/, async (ctx) => {
+    const user = await getOrCreateUser(ctx);
+    if (!user) return ctx.answerCbQuery('Ошибка: не удалось найти профиль.');
+    
+    const productId = parseInt(ctx.match[1]);
+    
+    await prisma.favoriteProduct.deleteMany({
+      where: {
+        customerId: user.id,
+        productId: productId
+      }
+    });
+    
+    // Обновляем кнопку
+    await ctx.editMessageReplyMarkup({
+      inline_keyboard: [
+        [
+          Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${productId}`),
+          Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${productId}`)
+        ]
+      ]
+    });
+    
+    await ctx.answerCbQuery(ctx.i18n.t('messages.removed_from_favorites'));
+  });
+  
+  // --- 7. ОФОРМЛЕНИЕ ЗАКАЗА ---
+  
+  // ✅ Оформить заказ (из корзины)
+  bot.action('checkout', async (ctx) => {
+    await ctx.deleteMessage();
+    await ctx.reply(
+      ctx.i18n.t('messages.checkout_start'),
+      Markup.keyboard([
+        [Markup.button.contactRequest(ctx.i18n.t('buttons.checkout_button'))],
+        [ctx.i18n.t('buttons.checkout_cancel')]
+      ]).resize().oneTime()
     );
   });
+  
+  // Отмена оформления
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.checkout_cancel'), 
+    async (ctx) => {
+      await ctx.reply('Оформление отменено.', Markup.removeKeyboard());
+      showMainMenu(ctx);
+    }
+  );
 
   // Обработчик получения контакта (телефона)
   bot.on('contact', async (ctx) => {
     const phone = ctx.message.contact.phone_number;
     const user = ctx.from;
-    const cart = ctx.session.cart;
-
+    const cart = ctx.session.cart || [];
+    
+    if (cart.length === 0) {
+      return ctx.reply(ctx.i18n.t('messages.cart_empty'), Markup.removeKeyboard());
+    }
+    
     // 1. Формируем текст заказа
     let total = 0;
-    let orderText = `<b>НОВЫЙ ЗАКАЗ (Telegram)</b>\n\n`;
-    orderText += `<b>Клиент:</b> ${user.first_name} ${user.last_name || ''} (@${user.username})\n`;
-    orderText += `<b>Телефон:</b> ${phone}\n\n`;
-    orderText += `<b>Заказ:</b>\n`;
+    let orderText = ctx.i18n.t('messages.checkout_admin_notify_title');
+    orderText += ctx.i18n.t('messages.checkout_admin_notify_client', {
+      firstName: user.first_name,
+      lastName: user.last_name || '',
+      username: user.username || 'N/A'
+    }) + '\n';
+    orderText += ctx.i18n.t('messages.checkout_admin_notify_phone', { phone: phone }) + '\n\n';
+    orderText += ctx.i18n.t('messages.checkout_admin_notify_order') + '\n';
     
-    cart.forEach(p => {
-      orderText += ` - ${p.name} (${p.price}€)\n`;
-      total += p.price;
+    // Группируем (как в корзине)
+    const productCounts = cart.reduce((acc, product) => {
+      acc[product.id] = (acc[product.id] || 0) + 1;
+      return acc;
+    }, {});
+    const productsInCart = await prisma.product.findMany({
+      where: { id: { in: cart.map(p => p.id) } }
     });
-    orderText += `\n<b>Итого: ${total.toFixed(2)}€</b>`;
+
+    for (const product of productsInCart) {
+      const count = productCounts[product.id];
+      const name = getL10nField(ctx, product, 'name'); // Используем ru, т.к. админ
+      orderText += ` - ${name} x${count} (${(product.price * count).toFixed(2)}€)\n`;
+      total += product.price * count;
+    }
+    
+    orderText += ctx.i18n.t('messages.checkout_admin_notify_total', { total: total.toFixed(2) });
 
     // 2. Отправляем уведомление менеджеру
     try {
-       const adminChatId = process.env.ADMIN_TELEGRAM_CHAT_ID;
-       await bot.telegram.sendMessage(adminChatId, orderText, { parse_mode: 'HTML' });
-    } catch(e) { console.error('Не удалось отправить заказ админу', e); }
+      const adminChatId = process.env.ADMIN_TELEGRAM_CHAT_ID;
+      if (adminChatId) {
+        await bot.telegram.sendMessage(adminChatId, orderText, { parse_mode: 'HTML' });
+      } else {
+        console.warn('ADMIN_TELEGRAM_CHAT_ID не настроен. Заказ не отправлен админу.');
+      }
+    } catch (e) {
+      console.error('Не удалось отправить заказ админу', e);
+    }
     
-    // 3. Отвечаем клиенту
-    ctx.reply(
-       'Спасибо! Ваш заказ принят. Наш менеджер свяжется с вами в течение 5 минут для подтверждения и оплаты.',
-       Markup.removeKeyboard() // Убираем кнопки "Отправить номер"
+    // 3. (Опционально) Сохраняем заказ в БД
+    const dbUser = await getOrCreateUser(ctx);
+    if (dbUser) {
+      await prisma.order.create({
+        data: {
+          customerId: dbUser.id,
+          totalPrice: total,
+          status: 'PENDING',
+          items: {
+            create: productsInCart.map(p => ({
+              productId: p.id,
+              quantity: productCounts[p.id],
+              price: p.price
+            }))
+          }
+        }
+      });
+    }
+
+    // 4. Отвечаем клиенту
+    await ctx.reply(
+      ctx.i18n.t('messages.checkout_success'),
+      Markup.removeKeyboard() // Убираем кнопки "Отправить номер"
     );
     
-    // 4. Очищаем корзину
+    // 5. Очищаем корзину
     ctx.session.cart = [];
+    showMainMenu(ctx);
   });
+
+  // --- 8. ЗАПУСК БОТА ---
   
   // Запускаем бота
   const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://sushi-icon-promonl.onrender.com';
 
-// --- НОВЫЙ БЕЗОПАСНЫЙ ЗАПУСК WEBHOOK ---
-try {
-  // Мы интегрируем бота в твой существующий Express-сервер.
-  app.use(await bot.createWebhook({ domain: WEBHOOK_URL }));
-  console.log(`✅ Telegram бот успешно запущен в режиме Webhook на ${WEBHOOK_URL}`);
-} catch (err) {
-  // Просто выводим предупреждение, но НЕ роняем сервер
-  console.warn('⚠️  Ошибка запуска Telegram webhook (сервер продолжит работу):', err.message);
-}
+  // --- НОВЫЙ БЕЗОПАСНЫЙ ЗАПУСК WEBHOOK ---
+  try {
+    // Мы интегрируем бота в твой существующий Express-сервер.
+    app.use(await bot.createWebhook({ domain: WEBHOOK_URL }));
+    console.log(`✅ Telegram бот успешно запущен в режиме Webhook на ${WEBHOOK_URL}`);
+  } catch (err) {
+    // Просто выводим предупреждение, но НЕ роняем сервер
+    console.warn('⚠️  Ошибка запуска Telegram webhook (сервер продолжит работу):', err.message);
+  }
 
 } // <-- Это закрывающая скобка от if (process.env.TELEGRAM_BOT_TOKEN)
 

@@ -8,28 +8,96 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model FavoriteProduct {
+  id         Int      @id @default(autoincrement())
+  customerId String
+  productId  Int
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productId]) // Пользователь не может дважды добавить в избранное
+}
+
+model Product {
+  id       Int     @id @default(autoincrement())
+  price    Float
+  imageUrl String?
+
+  // Поля для 4-х языков
+  name_ru String
+  name_en String
+  name_uk String
+  name_nl String
+
+  ingredients_ru String?
+  ingredients_en String?
+  ingredients_uk String?
+  ingredients_nl String?
+
+  // Флаги для твоего нового меню
+  isPopular            Boolean @default(false)
+  isChefRecommendation Boolean @default(false)
+  isPromotion          Boolean @default(false)
+
+  categoryId Int
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
+
+  // 👇 ВОТ РЕШЕНИЕ ДЛЯ ОШИБОК 1 и 2 👇
+  favoritedBy   FavoriteProduct[]
+  OrderLineItem OrderLineItem[]
+}
+
 model Customer {
-  id                       String                @id @default(cuid())
+  id           String  @id @default(cuid())
+  telegramId   BigInt? @unique // <-- НОВОЕ: Для привязки к Telegram
+  languageCode String? @default("ru") // <-- НОВОЕ: Язык (ru, en, uk, nl)
+
   firstName                String
   lastName                 String
-  phoneNumber              String                @unique
-  email                    String
-  birthDate                DateTime?
+  country                  String
+  phoneNumber              String               @unique
+  email                    String?              @unique
+  birthDate                DateTime?            @db.Date
   city                     String?
   street                   String?
   postalCode               String?
   houseNumber              String?
   preferredFood            String?
   feedback                 String?
-  country                  String?
-  discountCode             String                @unique
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
+  discountCode             String               @unique
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  subscriptions            MessageSubscription?
+  isEmailVerified          Boolean              @default(false)
   emailVerificationCode    String?
-  isEmailVerified          Boolean               @default(false)
+  marketingConsent         Boolean              @default(false)
   lastBirthdayGreetingSent DateTime?
-  subscriptions            MessageSubscription[]
-  marketingConsent         Boolean               @default(false)
+
+  // НОВЫЕ СВЯЗИ
+  favorites FavoriteProduct[] // <-- НОВОЕ: "Избранное"
+  orders    Order[] // <-- НОВОЕ: Для будущих заказов
+}
+
+model Order {
+  id         Int             @id @default(autoincrement())
+  customerId String
+  customer   Customer        @relation(fields: [customerId], references: [id])
+  totalPrice Float
+  status     String          @default("PENDING") // PENDING, CONFIRMED, DELIVERED
+  createdAt  DateTime        @default(now())
+  items      OrderLineItem[]
+}
+
+model OrderLineItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float // Цена на момент покупки
 }
 
 model Owner {
@@ -48,8 +116,11 @@ model Owner {
 }
 
 model MessageSubscription {
-  id         String            @id @default(cuid())
-  customerId String
+  id String @id @default(cuid())
+
+  // 👇 ВОТ РЕШЕНИЕ ДЛЯ ОШИБКИ 3 👇
+  customerId String @unique // Добавь @unique
+
   subscribed Boolean           @default(true)
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
@@ -146,20 +217,7 @@ enum DeliveryStatus {
 }
 
 model ProductCategory {
-  id       String    @id @default(cuid())
+  id       Int       @id @default(autoincrement())
   name     String
   products Product[]
-}
-
-model Product {
-  id          Int             @id @default(autoincrement()) // Or String @default(cuid())
-  name        String
-  description String?
-  price       Float
-  categoryId  String
-  category    ProductCategory @relation(fields: [categoryId], references: [id])
-  createdAt   DateTime        @default(now())
-
-  // You might need to adjust this based on your bot logic
-  // e.g., if you use 'friesId' in the upsell
 }

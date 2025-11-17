@@ -120,10 +120,38 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.FavoriteProductScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  productId: 'productId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ProductScalarFieldEnum = {
+  id: 'id',
+  price: 'price',
+  imageUrl: 'imageUrl',
+  name_ru: 'name_ru',
+  name_en: 'name_en',
+  name_uk: 'name_uk',
+  name_nl: 'name_nl',
+  ingredients_ru: 'ingredients_ru',
+  ingredients_en: 'ingredients_en',
+  ingredients_uk: 'ingredients_uk',
+  ingredients_nl: 'ingredients_nl',
+  isPopular: 'isPopular',
+  isChefRecommendation: 'isChefRecommendation',
+  isPromotion: 'isPromotion',
+  categoryId: 'categoryId'
+};
+
 exports.Prisma.CustomerScalarFieldEnum = {
   id: 'id',
+  telegramId: 'telegramId',
+  languageCode: 'languageCode',
   firstName: 'firstName',
   lastName: 'lastName',
+  country: 'country',
   phoneNumber: 'phoneNumber',
   email: 'email',
   birthDate: 'birthDate',
@@ -133,14 +161,29 @@ exports.Prisma.CustomerScalarFieldEnum = {
   houseNumber: 'houseNumber',
   preferredFood: 'preferredFood',
   feedback: 'feedback',
-  country: 'country',
   discountCode: 'discountCode',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  emailVerificationCode: 'emailVerificationCode',
   isEmailVerified: 'isEmailVerified',
-  lastBirthdayGreetingSent: 'lastBirthdayGreetingSent',
-  marketingConsent: 'marketingConsent'
+  emailVerificationCode: 'emailVerificationCode',
+  marketingConsent: 'marketingConsent',
+  lastBirthdayGreetingSent: 'lastBirthdayGreetingSent'
+};
+
+exports.Prisma.OrderScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  totalPrice: 'totalPrice',
+  status: 'status',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.OrderLineItemScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  productId: 'productId',
+  quantity: 'quantity',
+  price: 'price'
 };
 
 exports.Prisma.OwnerScalarFieldEnum = {
@@ -248,15 +291,6 @@ exports.Prisma.ProductCategoryScalarFieldEnum = {
   name: 'name'
 };
 
-exports.Prisma.ProductScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  price: 'price',
-  categoryId: 'categoryId',
-  createdAt: 'createdAt'
-};
-
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -278,15 +312,18 @@ exports.DeliveryStatus = exports.$Enums.DeliveryStatus = {
 };
 
 exports.Prisma.ModelName = {
+  FavoriteProduct: 'FavoriteProduct',
+  Product: 'Product',
   Customer: 'Customer',
+  Order: 'Order',
+  OrderLineItem: 'OrderLineItem',
   Owner: 'Owner',
   MessageSubscription: 'MessageSubscription',
   BroadcastMessage: 'BroadcastMessage',
   MessageDelivery: 'MessageDelivery',
   OwnerLoginSession: 'OwnerLoginSession',
   FormDraft: 'FormDraft',
-  ProductCategory: 'ProductCategory',
-  Product: 'Product'
+  ProductCategory: 'ProductCategory'
 };
 
 /**
