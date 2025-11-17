@@ -17,7 +17,7 @@ import { google } from 'googleapis';
 import { Telegraf, Markup } from 'telegraf';
 import LocalSession from 'telegraf-session-local';
 import axios from 'axios';
-import { I18n } from 'i18n-telegraf'; // <-- НОВЫЙ ИМПОРТ
+import I18n from 'i18n-telegraf'; // <-- НОВЫЙ ИМПОРТ
 
 
 dotenv.config();
