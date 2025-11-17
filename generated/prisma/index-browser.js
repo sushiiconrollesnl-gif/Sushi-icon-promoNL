@@ -288,7 +288,10 @@ exports.Prisma.FormDraftScalarFieldEnum = {
 
 exports.Prisma.ProductCategoryScalarFieldEnum = {
   id: 'id',
-  name: 'name'
+  name_ru: 'name_ru',
+  name_en: 'name_en',
+  name_uk: 'name_uk',
+  name_nl: 'name_nl'
 };
 
 exports.Prisma.SortOrder = {

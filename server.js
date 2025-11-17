@@ -2541,6 +2541,28 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   // (Для хранения языка, корзины и т.д.)
   const session = new LocalSession({ database: 'sessions.json' });
   bot.use(session.middleware());
+  bot.use(async (ctx, next) => {
+    // Запускаем, только если язык в сессии отсутствует
+    if (!ctx.session.lang && ctx.from && ctx.from.id) {
+      try {
+        const telegramId = BigInt(ctx.from.id);
+        const user = await prisma.customer.findUnique({
+          where: { telegramId: telegramId },
+          select: { languageCode: true } // Берем из БД только язык
+        });
+
+        // Если нашли пользователя и у него есть язык
+        if (user && user.languageCode) {
+          ctx.session.lang = user.languageCode; // Восстанавливаем язык в сессию
+        }
+      } catch (e) {
+        console.error("Ошибка восстановления языка из БД:", e.message);
+      }
+    }
+    // Передаем управление дальше (либо с восстановленным языком, либо как было)
+    return next();
+  });
+  // --- КОНЕЦ НОВОГО MIDDLEWARE ---
   bot.use(i18n.middleware());
 
   // --- 3. ХЕЛПЕРЫ (Вспомогательные функции) ---

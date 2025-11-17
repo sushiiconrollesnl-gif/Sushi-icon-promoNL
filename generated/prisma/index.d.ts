@@ -15201,17 +15201,26 @@ export namespace Prisma {
 
   export type ProductCategoryMinAggregateOutputType = {
     id: number | null
-    name: string | null
+    name_ru: string | null
+    name_en: string | null
+    name_uk: string | null
+    name_nl: string | null
   }
 
   export type ProductCategoryMaxAggregateOutputType = {
     id: number | null
-    name: string | null
+    name_ru: string | null
+    name_en: string | null
+    name_uk: string | null
+    name_nl: string | null
   }
 
   export type ProductCategoryCountAggregateOutputType = {
     id: number
-    name: number
+    name_ru: number
+    name_en: number
+    name_uk: number
+    name_nl: number
     _all: number
   }
 
@@ -15226,17 +15235,26 @@ export namespace Prisma {
 
   export type ProductCategoryMinAggregateInputType = {
     id?: true
-    name?: true
+    name_ru?: true
+    name_en?: true
+    name_uk?: true
+    name_nl?: true
   }
 
   export type ProductCategoryMaxAggregateInputType = {
     id?: true
-    name?: true
+    name_ru?: true
+    name_en?: true
+    name_uk?: true
+    name_nl?: true
   }
 
   export type ProductCategoryCountAggregateInputType = {
     id?: true
-    name?: true
+    name_ru?: true
+    name_en?: true
+    name_uk?: true
+    name_nl?: true
     _all?: true
   }
 
@@ -15328,7 +15346,10 @@ export namespace Prisma {
 
   export type ProductCategoryGroupByOutputType = {
     id: number
-    name: string
+    name_ru: string
+    name_en: string
+    name_uk: string
+    name_nl: string
     _count: ProductCategoryCountAggregateOutputType | null
     _avg: ProductCategoryAvgAggregateOutputType | null
     _sum: ProductCategorySumAggregateOutputType | null
@@ -15352,27 +15373,39 @@ export namespace Prisma {
 
   export type ProductCategorySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    name?: boolean
+    name_ru?: boolean
+    name_en?: boolean
+    name_uk?: boolean
+    name_nl?: boolean
     products?: boolean | ProductCategory$productsArgs<ExtArgs>
     _count?: boolean | ProductCategoryCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["productCategory"]>
 
   export type ProductCategorySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    name?: boolean
+    name_ru?: boolean
+    name_en?: boolean
+    name_uk?: boolean
+    name_nl?: boolean
   }, ExtArgs["result"]["productCategory"]>
 
   export type ProductCategorySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    name?: boolean
+    name_ru?: boolean
+    name_en?: boolean
+    name_uk?: boolean
+    name_nl?: boolean
   }, ExtArgs["result"]["productCategory"]>
 
   export type ProductCategorySelectScalar = {
     id?: boolean
-    name?: boolean
+    name_ru?: boolean
+    name_en?: boolean
+    name_uk?: boolean
+    name_nl?: boolean
   }
 
-  export type ProductCategoryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name", ExtArgs["result"]["productCategory"]>
+  export type ProductCategoryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name_ru" | "name_en" | "name_uk" | "name_nl", ExtArgs["result"]["productCategory"]>
   export type ProductCategoryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     products?: boolean | ProductCategory$productsArgs<ExtArgs>
     _count?: boolean | ProductCategoryCountOutputTypeDefaultArgs<ExtArgs>
@@ -15387,7 +15420,10 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
-      name: string
+      name_ru: string
+      name_en: string
+      name_uk: string
+      name_nl: string
     }, ExtArgs["result"]["productCategory"]>
     composites: {}
   }
@@ -15813,7 +15849,10 @@ export namespace Prisma {
    */
   interface ProductCategoryFieldRefs {
     readonly id: FieldRef<"ProductCategory", 'Int'>
-    readonly name: FieldRef<"ProductCategory", 'String'>
+    readonly name_ru: FieldRef<"ProductCategory", 'String'>
+    readonly name_en: FieldRef<"ProductCategory", 'String'>
+    readonly name_uk: FieldRef<"ProductCategory", 'String'>
+    readonly name_nl: FieldRef<"ProductCategory", 'String'>
   }
     
 
@@ -16459,7 +16498,10 @@ export namespace Prisma {
 
   export const ProductCategoryScalarFieldEnum: {
     id: 'id',
-    name: 'name'
+    name_ru: 'name_ru',
+    name_en: 'name_en',
+    name_uk: 'name_uk',
+    name_nl: 'name_nl'
   };
 
   export type ProductCategoryScalarFieldEnum = (typeof ProductCategoryScalarFieldEnum)[keyof typeof ProductCategoryScalarFieldEnum]
@@ -17625,13 +17667,19 @@ export namespace Prisma {
     OR?: ProductCategoryWhereInput[]
     NOT?: ProductCategoryWhereInput | ProductCategoryWhereInput[]
     id?: IntFilter<"ProductCategory"> | number
-    name?: StringFilter<"ProductCategory"> | string
+    name_ru?: StringFilter<"ProductCategory"> | string
+    name_en?: StringFilter<"ProductCategory"> | string
+    name_uk?: StringFilter<"ProductCategory"> | string
+    name_nl?: StringFilter<"ProductCategory"> | string
     products?: ProductListRelationFilter
   }
 
   export type ProductCategoryOrderByWithRelationInput = {
     id?: SortOrder
-    name?: SortOrder
+    name_ru?: SortOrder
+    name_en?: SortOrder
+    name_uk?: SortOrder
+    name_nl?: SortOrder
     products?: ProductOrderByRelationAggregateInput
   }
 
@@ -17640,13 +17688,19 @@ export namespace Prisma {
     AND?: ProductCategoryWhereInput | ProductCategoryWhereInput[]
     OR?: ProductCategoryWhereInput[]
     NOT?: ProductCategoryWhereInput | ProductCategoryWhereInput[]
-    name?: StringFilter<"ProductCategory"> | string
+    name_ru?: StringFilter<"ProductCategory"> | string
+    name_en?: StringFilter<"ProductCategory"> | string
+    name_uk?: StringFilter<"ProductCategory"> | string
+    name_nl?: StringFilter<"ProductCategory"> | string
     products?: ProductListRelationFilter
   }, "id">
 
   export type ProductCategoryOrderByWithAggregationInput = {
     id?: SortOrder
-    name?: SortOrder
+    name_ru?: SortOrder
+    name_en?: SortOrder
+    name_uk?: SortOrder
+    name_nl?: SortOrder
     _count?: ProductCategoryCountOrderByAggregateInput
     _avg?: ProductCategoryAvgOrderByAggregateInput
     _max?: ProductCategoryMaxOrderByAggregateInput
@@ -17659,7 +17713,10 @@ export namespace Prisma {
     OR?: ProductCategoryScalarWhereWithAggregatesInput[]
     NOT?: ProductCategoryScalarWhereWithAggregatesInput | ProductCategoryScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"ProductCategory"> | number
-    name?: StringWithAggregatesFilter<"ProductCategory"> | string
+    name_ru?: StringWithAggregatesFilter<"ProductCategory"> | string
+    name_en?: StringWithAggregatesFilter<"ProductCategory"> | string
+    name_uk?: StringWithAggregatesFilter<"ProductCategory"> | string
+    name_nl?: StringWithAggregatesFilter<"ProductCategory"> | string
   }
 
   export type FavoriteProductCreateInput = {
@@ -18839,39 +18896,60 @@ export namespace Prisma {
   }
 
   export type ProductCategoryCreateInput = {
-    name: string
+    name_ru: string
+    name_en: string
+    name_uk: string
+    name_nl: string
     products?: ProductCreateNestedManyWithoutCategoryInput
   }
 
   export type ProductCategoryUncheckedCreateInput = {
     id?: number
-    name: string
+    name_ru: string
+    name_en: string
+    name_uk: string
+    name_nl: string
     products?: ProductUncheckedCreateNestedManyWithoutCategoryInput
   }
 
   export type ProductCategoryUpdateInput = {
-    name?: StringFieldUpdateOperationsInput | string
+    name_ru?: StringFieldUpdateOperationsInput | string
+    name_en?: StringFieldUpdateOperationsInput | string
+    name_uk?: StringFieldUpdateOperationsInput | string
+    name_nl?: StringFieldUpdateOperationsInput | string
     products?: ProductUpdateManyWithoutCategoryNestedInput
   }
 
   export type ProductCategoryUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
+    name_ru?: StringFieldUpdateOperationsInput | string
+    name_en?: StringFieldUpdateOperationsInput | string
+    name_uk?: StringFieldUpdateOperationsInput | string
+    name_nl?: StringFieldUpdateOperationsInput | string
     products?: ProductUncheckedUpdateManyWithoutCategoryNestedInput
   }
 
   export type ProductCategoryCreateManyInput = {
     id?: number
-    name: string
+    name_ru: string
+    name_en: string
+    name_uk: string
+    name_nl: string
   }
 
   export type ProductCategoryUpdateManyMutationInput = {
-    name?: StringFieldUpdateOperationsInput | string
+    name_ru?: StringFieldUpdateOperationsInput | string
+    name_en?: StringFieldUpdateOperationsInput | string
+    name_uk?: StringFieldUpdateOperationsInput | string
+    name_nl?: StringFieldUpdateOperationsInput | string
   }
 
   export type ProductCategoryUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
+    name_ru?: StringFieldUpdateOperationsInput | string
+    name_en?: StringFieldUpdateOperationsInput | string
+    name_uk?: StringFieldUpdateOperationsInput | string
+    name_nl?: StringFieldUpdateOperationsInput | string
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -19848,7 +19926,10 @@ export namespace Prisma {
 
   export type ProductCategoryCountOrderByAggregateInput = {
     id?: SortOrder
-    name?: SortOrder
+    name_ru?: SortOrder
+    name_en?: SortOrder
+    name_uk?: SortOrder
+    name_nl?: SortOrder
   }
 
   export type ProductCategoryAvgOrderByAggregateInput = {
@@ -19857,12 +19938,18 @@ export namespace Prisma {
 
   export type ProductCategoryMaxOrderByAggregateInput = {
     id?: SortOrder
-    name?: SortOrder
+    name_ru?: SortOrder
+    name_en?: SortOrder
+    name_uk?: SortOrder
+    name_nl?: SortOrder
   }
 
   export type ProductCategoryMinOrderByAggregateInput = {
     id?: SortOrder
-    name?: SortOrder
+    name_ru?: SortOrder
+    name_en?: SortOrder
+    name_uk?: SortOrder
+    name_nl?: SortOrder
   }
 
   export type ProductCategorySumOrderByAggregateInput = {
@@ -20992,12 +21079,18 @@ export namespace Prisma {
   }
 
   export type ProductCategoryCreateWithoutProductsInput = {
-    name: string
+    name_ru: string
+    name_en: string
+    name_uk: string
+    name_nl: string
   }
 
   export type ProductCategoryUncheckedCreateWithoutProductsInput = {
     id?: number
-    name: string
+    name_ru: string
+    name_en: string
+    name_uk: string
+    name_nl: string
   }
 
   export type ProductCategoryCreateOrConnectWithoutProductsInput = {
@@ -21061,12 +21154,18 @@ export namespace Prisma {
   }
 
   export type ProductCategoryUpdateWithoutProductsInput = {
-    name?: StringFieldUpdateOperationsInput | string
+    name_ru?: StringFieldUpdateOperationsInput | string
+    name_en?: StringFieldUpdateOperationsInput | string
+    name_uk?: StringFieldUpdateOperationsInput | string
+    name_nl?: StringFieldUpdateOperationsInput | string
   }
 
   export type ProductCategoryUncheckedUpdateWithoutProductsInput = {
     id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
+    name_ru?: StringFieldUpdateOperationsInput | string
+    name_en?: StringFieldUpdateOperationsInput | string
+    name_uk?: StringFieldUpdateOperationsInput | string
+    name_nl?: StringFieldUpdateOperationsInput | string
   }
 
   export type FavoriteProductUpsertWithWhereUniqueWithoutProductInput = {

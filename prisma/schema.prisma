@@ -217,7 +217,13 @@ enum DeliveryStatus {
 }
 
 model ProductCategory {
-  id       Int       @id @default(autoincrement())
-  name     String
+  id Int @id @default(autoincrement())
+
+  // Поля для 4-х языков
+  name_ru String
+  name_en String
+  name_uk String
+  name_nl String
+
   products Product[]
 }
