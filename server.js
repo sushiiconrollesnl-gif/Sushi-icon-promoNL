@@ -2521,16 +2521,12 @@ scheduleDailyCheck();
 // (Опционально) Запустить проверку один раз при старте сервера
 // sendBirthdayGreetings();
 // --- Telegram Bot Logic ---
+const fs = require('fs'); // ◁ (Требуется для чтения файлов)
+const TelegramBot = require('node-telegram-bot-api');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (token) {
   console.log('Telegram Bot Token найден, запускаем бота...');
-  
-  // ❗️ ОШИБКИ БОЛЬШЕ НЕТ.
-  // Мы НЕ используем `require('fs')` или `require('TelegramBot')`
-  // Мы используем `fs` и `TelegramBot`, которые уже импортированы
-  // в строках 3 и 10 вашего server.js
-
   const bot = new TelegramBot(token, { polling: true });
 
   // --- 1. Загрузка переводов ---
@@ -2539,7 +2535,6 @@ if (token) {
   
   supportedLangs.forEach(lang => {
     try {
-      // `path` и `__dirname` уже определены вверху server.js
       const data = fs.readFileSync(path.join(__dirname, 'bot_locales', `${lang}.json`), 'utf8');
       locales[lang] = JSON.parse(data);
       console.log(`Загружен файл локализации: ${lang}.json`);
@@ -2638,14 +2633,11 @@ if (token) {
     const lang = msg.from.language_code || 'ru'; // Определяем язык пользователя
     const userName = msg.from.first_name || 'гость';
 
-    // ❗️ ВАЖНО: Замените 'sushi-icon-promo-nl.onrender.com' на ваш реальный домен
+    // ❗️ ВАЖНО: Замените 'YOUR_DOMAIN.COM' на ваш реальный домен
     // Логотип должен быть доступен по публичной ссылке
-    // Файл 'new_sushi_logo.jpg'
-    // Он будет доступен, т.к. `app.use(express.static...` настроен на 'frontend/dist'
-    // Лог сборки показывает, что файл логотипа называется: 'new_sushi_logo-UYS3lJVp.jpg'
-    
-    // ❗️ Используем имя файла из лога сборки!
-    const logoUrl = 'https://sushi-icon-promo-nl.onrender.com/assets/new_sushi_logo-UYS3lJVp.jpg'; 
+    // Он есть у вас в 'frontend/src/assets/new_sushi_logo.jpg'
+    // Убедитесь, что он копируется в 'frontend/dist/assets/' при сборке
+    const logoUrl = 'https://YOUR_DOMAIN.COM/assets/new_sushi_logo.jpg'; 
     
     // Отправляем логотип
     bot.sendPhoto(chatId, logoUrl)
@@ -2671,9 +2663,7 @@ if (token) {
   // --- 4. ЕДИНЫЙ обработчик для Reply-кнопок (вместо onText) ---
   bot.on('message', (msg) => {
     // Игнорируем команды, т.к. для них есть onText
-    if (msg.text && msg.text.startsWith('/')) return;
-    // Игнорируем, если текста нет (например, отправка фото)
-    if (!msg.text) return;
+    if (msg.text.startsWith('/')) return;
 
     const chatId = msg.chat.id;
     const lang = msg.from.language_code || 'ru';
@@ -2719,18 +2709,11 @@ if (token) {
       
       // --- Показать меню категорий (из "Назад" или "Добавить еще") ---
       case 'show_categories':
-        // Если сообщение было с фото (caption), его надо удалить и отправить текст
-        if (query.message.photo) {
-          bot.deleteMessage(chatId, messageId);
-          bot.sendMessage(chatId, t(lang, 'bot.menu_title'), getCategoriesMenu(lang));
-        } else {
-          // Если это было текстовое сообщение, редактируем его
-          bot.editMessageText(t(lang, 'bot.menu_title'), {
-            chat_id: chatId,
-            message_id: messageId,
-            ...getCategoriesMenu(lang)
-          });
-        }
+        bot.editMessageText(t(lang, 'bot.menu_title'), {
+          chat_id: chatId,
+          message_id: messageId,
+          ...getCategoriesMenu(lang)
+        });
         break;
 
       // --- Вернуться в главное меню ---
