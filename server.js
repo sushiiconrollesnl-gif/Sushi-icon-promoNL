@@ -2521,6 +2521,7 @@ scheduleDailyCheck();
 
 // (Опционально) Запустить проверку один раз при старте сервера
 // sendBirthdayGreetings();
+// --- НАЧАЛО ИСПРАВЛЕННОГО БОТА ---
 let bot;
 
 if (!process.env.TELEGRAM_BOT_TOKEN) {
@@ -2530,28 +2531,30 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
 
   bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-  // --- 1. НАСТРОЙКА I18N ---
+  // 1. НАСТРОЙКА I18N
   const i18n = new I18n({
     defaultLanguage: 'ru',
     allowMissing: true,
     directory: path.resolve(__dirname, 'locales'),
   });
 
-  // --- 2. НАСТРОЙКА СЕССИЙ ---
+  // 2. СЕССИИ И I18N
   const session = new LocalSession({ database: 'sessions.json' });
   bot.use(session.middleware());
   bot.use(i18n.middleware());
 
-  // Middleware для восстановления языка
+  // Middleware языка (восстанавливает выбор пользователя)
   bot.use(async (ctx, next) => {
     let lang = ctx.session.lang;
     if (!lang && ctx.from && ctx.from.id) {
       try {
         const telegramId = BigInt(ctx.from.id);
+        // Игнорируем ошибку, если юзера нет
         const user = await prisma.customer.findUnique({
           where: { telegramId: telegramId },
           select: { languageCode: true }
-        });
+        }).catch(() => null);
+        
         if (user && user.languageCode) {
           lang = user.languageCode;
           ctx.session.lang = lang;
@@ -2564,182 +2567,161 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
 
   // --- 3. ХЕЛПЕРЫ ---
 
-  const getOrCreateUser = async (ctx) => {
-    const telegramId = BigInt(ctx.from.id);
-    let user = await prisma.customer.findUnique({ where: { telegramId } });
-
-    if (!user) {
-      try {
-        user = await prisma.customer.create({
-          data: {
-            telegramId: telegramId,
-            firstName: ctx.from.first_name,
-            lastName: ctx.from.last_name || '',
-            languageCode: ctx.from.language_code || 'ru',
-            phoneNumber: `TG_${telegramId}`,
-            country: 'NL',
-            discountCode: `TG_${telegramId}_${Date.now()}`
-          },
-        });
-      } catch (e) { return null; }
-    }
-    // Обновляем язык если изменился
-    if (ctx.session.lang && user.languageCode !== ctx.session.lang) {
-      await prisma.customer.update({ where: { id: user.id }, data: { languageCode: ctx.session.lang } });
-    }
-    return user;
-  };
-
+  // Функция получения переведенного поля (например, name_ru или name_en)
   const getL10nField = (ctx, item, fieldName) => {
     const lang = ctx.session.lang || 'ru';
+    // Проверяем name_en, name_ru и т.д.
     return item[`${fieldName}_${lang}`] || item[`${fieldName}_ru`] || item[fieldName] || '';
   };
 
-  // --- ИСПРАВЛЕНИЕ 1: Ваше меню (вертикальное) ---
-  const showMainMenu = (ctx) => {
-    if (ctx.session) ctx.session.step = null;
-
-    // Используем ключи перевода, но если их нет — текст по умолчанию
-    const keyboard = Markup.keyboard([
-      ['📖 Меню'],              // 1
-      ['🔥 Популярное'],        // 2
-      ['🛍 Сделать заказ'],      // 3
-      ['🎁 Акции'],             // 4
-      ['⭐ Рекомендации шефа'], // 5
-      ['🧰 Корзина'],           // 6
-      ['👨‍💻 Оператор']          // 7
-    ]).resize();
-
-    // Вместо "Добро пожаловать" здесь просто спрашиваем действие,
-    // чтобы приветствие не спамило каждый раз.
-    ctx.replyWithHTML('Что хотите сделать?', keyboard);
+  const getOrCreateUser = async (ctx) => {
+    const telegramId = BigInt(ctx.from.id);
+    try {
+        let user = await prisma.customer.findUnique({ where: { telegramId } });
+        if (!user) {
+            user = await prisma.customer.create({
+                data: {
+                    telegramId,
+                    firstName: ctx.from.first_name,
+                    lastName: ctx.from.last_name || '',
+                    languageCode: ctx.session.lang || 'ru',
+                    phoneNumber: `TG_${telegramId}`, // Заглушка
+                    country: 'NL',
+                    discountCode: `TG${Date.now().toString().slice(-6)}`
+                }
+            });
+        }
+        // Обновляем язык, если он сменился в сессии
+        if (ctx.session.lang && user.languageCode !== ctx.session.lang) {
+             await prisma.customer.update({
+                 where: { id: user.id },
+                 data: { languageCode: ctx.session.lang }
+             });
+        }
+        return user;
+    } catch (e) { 
+        console.error('Ошибка getOrCreateUser:', e.message);
+        return null; 
+    }
   };
 
-  // --- ИСПРАВЛЕНИЕ 2: Категории (2 колонки) ---
-  // ВАЖНО: Кнопки должны точно совпадать с тем, что мы ловим в bot.hears
-  const getCategoriesKeyboard = () => {
-    return Markup.keyboard([
-      ['🍣 Роллы', '🥡 Сеты'],
-      ['🔥 Горячие роллы', '🍕 Пиццы'],
-      ['👻 Детское меню', '🥤 Напитки'],
-      ['⚡️ Соусы', '⬅ Назад в главное меню']
-    ]).resize();
-  }
+  // КЛАВИАТУРЫ
+  const getMainMenu = (ctx) => {
+      return Markup.keyboard([
+        ['📖 Меню', '🔥 Популярное'],
+        ['🛍 Сделать заказ', '🧰 Корзина'], // Кнопка "Сделать заказ" теперь здесь
+        ['🎁 Акции', '⭐ Рекомендации шефа'],
+        ['❤️ Избранное', '👨‍💻 Оператор'] // Вернул кнопку ИЗБРАННОЕ
+      ]).resize();
+  };
 
-  // --- ЛОГИКА ТОВАРОВ И ФОРМАТИРОВАНИЯ ---
+  const getCategoriesMenu = () => {
+      return Markup.keyboard([
+        ['🍣 Роллы', '🥡 Сеты'],
+        ['🔥 Горячие роллы', '🍕 Пиццы'],
+        ['👻 Детское меню', '🥤 Напитки'],
+        ['⚡️ Соусы', '⬅ Назад в главное меню']
+      ]).resize();
+  };
 
-  // ИСПРАВЛЕНИЕ 3: Функция сборки описания (решает проблему со скобками)
+  // Сборка карточки товара
   const buildProductCaption = (ctx, product) => {
-    // Берем локализованные данные
     const name = getL10nField(ctx, product, 'name');
-    const description = getL10nField(ctx, product, 'description') || getL10nField(ctx, product, 'ingredients'); 
-    
-    // Форматируем цену
-    const price = typeof product.price === 'number' ? product.price.toFixed(2).replace('.00', '') : '0';
+    // В вашей схеме есть ingredients_ru, но нет description_ru. Используем ingredients.
+    const desc = getL10nField(ctx, product, 'ingredients') || 'Вкуснейшее блюдо';
+    const price = typeof product.price === 'number' ? product.price.toFixed(2) : '0';
 
-    // Используем HTML теги <b> и <i>. 
-    // Обратные кавычки ` ` позволяют вставлять переменные ${name} без ошибок.
-    return `
-<b>${name} — ${price}€</b>
-
-<i>${description || 'Состав уточняйте у оператора'}</i>
-`;
+    return `<b>${name} — ${price}€</b>\n\n<i>${desc}</i>`;
   };
 
   const buildProductKeyboard = (ctx, product, isFavorite) => {
-    const favText = isFavorite ? '💔 Удалить из избранного' : '❤️ В избранное';
+    const favText = isFavorite ? '💔 Удалить' : '❤️ В избранное';
     const favAction = isFavorite ? `rem_fav_${product.id}` : `add_fav_${product.id}`;
-
+    
     return Markup.inlineKeyboard([
-      [Markup.button.callback('➕ Добавить в корзину', `add_cart_${product.id}`)],
-      [Markup.button.callback(favText, favAction)],
-      [Markup.button.callback('⬅ Назад к категориям', 'back_to_cats')] // Исправил callback
+        [Markup.button.callback('➕ Добавить в корзину', `add_cart_${product.id}`)],
+        [Markup.button.callback(favText, favAction)],
+        [Markup.button.callback('⬅ Назад к категориям', 'back_to_cats')]
     ]);
   };
 
   const sendProductCard = async (ctx, product, caption, keyboard) => {
     try {
-      // Всегда используем HTML
-      if (product.imageUrl) {
-        await ctx.replyWithPhoto({ url: product.imageUrl }, {
-          caption: caption,
-          parse_mode: 'HTML', 
-          ...keyboard
-        });
-      } else {
-        await ctx.reply(caption, {
-          parse_mode: 'HTML',
-          ...keyboard
-        });
-      }
+        if (product.imageUrl) {
+            await ctx.replyWithPhoto({ url: product.imageUrl }, { caption, parse_mode: 'HTML', ...keyboard });
+        } else {
+            await ctx.reply(caption, { parse_mode: 'HTML', ...keyboard });
+        }
     } catch (e) {
-      console.error(`Ошибка отправки товара ${product.id}:`, e.message);
-      // Фолбэк, если фото не грузится
-      await ctx.reply(caption, { parse_mode: 'HTML', ...keyboard });
+        console.error(`Ошибка фото ${product.id}:`, e.message);
+        await ctx.reply(caption, { parse_mode: 'HTML', ...keyboard });
     }
   };
 
-  // --- 4. КОМАНДЫ И ЛОГИКА ---
+  // --- КОМАНДЫ ---
 
-  // ИСПРАВЛЕНИЕ 4: Приветствие только тут
+  // СТАРТ: Выбор языка (Вернул как вы просили)
   bot.start(async (ctx) => {
-    ctx.session.lang = ctx.session.lang || 'ru';
     ctx.session.cart = ctx.session.cart || [];
     await getOrCreateUser(ctx);
-
-    // Показываем приветствие один раз
-    await ctx.reply('Добро пожаловать в SUSHI ICON 🍣✨\nЧто хотите сделать?', 
-      // Сразу показываем главное меню
-      Markup.keyboard([
-        ['📖 Меню'],
-        ['🔥 Популярное'],
-        ['🛍 Сделать заказ'],
-        ['🎁 Акции'],
-        ['⭐ Рекомендации шефа'],
-        ['🧰 Корзина'],
-        ['👨‍💻 Оператор']
-      ]).resize()
+    
+    await ctx.reply('Добро пожаловать в SUSHI ICON 🍣✨\nВыберите язык / Choose language:', 
+        Markup.inlineKeyboard([
+            [Markup.button.callback('🇷🇺 Русский', 'set_lang_ru'), Markup.button.callback('🇺🇦 Українська', 'set_lang_uk')],
+            [Markup.button.callback('🇬🇧 English', 'set_lang_en'), Markup.button.callback('🇳🇱 Nederlands', 'set_lang_nl')]
+        ])
     );
   });
 
-  // Обработка кнопки "Меню" (открывает категории)
-  bot.hears(['📖 Меню', 'Menu'], async (ctx) => {
-      await ctx.reply('Выберите категорию:', getCategoriesKeyboard());
+  // Обработка выбора языка -> Переход в меню
+  bot.action(/set_lang_(.*)/, async (ctx) => {
+      const lang = ctx.match[1];
+      ctx.session.lang = lang;
+      ctx.i18n.locale(lang);
+      await getOrCreateUser(ctx); // Сохранить язык в БД
+
+      await ctx.deleteMessage();
+      await ctx.reply('Язык сохранен! Что хотите сделать?', getMainMenu(ctx));
   });
 
-  // Обработка возврата
-  bot.hears(['⬅ Назад в главное меню', '⬅ Меню'], (ctx) => showMainMenu(ctx));
+  // --- МЕНЮ И КАТЕГОРИИ ---
 
-  // ОБРАБОТКА КАТЕГОРИЙ
-  // Список должен совпадать с кнопками в getCategoriesKeyboard
+  bot.hears(['⬅ Назад в главное меню', '⬅ Меню'], (ctx) => {
+      ctx.reply('Главное меню', getMainMenu(ctx));
+  });
+
+  bot.hears(['📖 Меню', 'Menu', '🛍 Сделать заказ'], async (ctx) => {
+      await ctx.reply('Выберите категорию:', getCategoriesMenu());
+  });
+
+  // ⚡️ ИСПРАВЛЕНИЕ ОШИБКИ PRISMA (Поиск категорий)
   const categoriesTriggers = ['🍣 Роллы', '🥡 Сеты', '🔥 Горячие роллы', '🍕 Пиццы', '👻 Детское меню', '🥤 Напитки', '⚡️ Соусы'];
   
   bot.hears(categoriesTriggers, async (ctx) => {
-    // Очищаем текст от эмодзи, чтобы найти в базе (Роллы, Сеты...)
-    const categoryName = ctx.message.text.replace(/🍣 |🥡 |🔥 |🍕 |👻 |🥤 |⚡️ /g, '');
-    
+    // Убираем эмодзи
+    const rawName = ctx.message.text.replace(/🍣 |🥡 |🔥 |🍕 |👻 |🥤 |⚡️ /g, '').trim();
+
     try {
-        // Ищем категорию. 
-        // ВНИМАНИЕ: Убедитесь, что названия в БД (ProductCategory) совпадают (Роллы, Сеты...)
-        // Или добавьте маппинг, если в базе они на английском (Rolls, Sets...)
-        
-        // Вариант: ищем товары через категорию по имени
+        // Ищем категорию, проверяя ВСЕ языковые поля (так как name нет)
         const products = await prisma.product.findMany({
             where: {
                 category: {
-                    name: { contains: categoryName, mode: 'insensitive' } // Нечувствительно к регистру
+                    OR: [
+                        { name_ru: { contains: rawName, mode: 'insensitive' } },
+                        { name_en: { contains: rawName, mode: 'insensitive' } },
+                        { name_uk: { contains: rawName, mode: 'insensitive' } },
+                        { name_nl: { contains: rawName, mode: 'insensitive' } }
+                    ]
                 }
             }
         });
 
-        if (products.length === 0) {
-            return ctx.reply('В этой категории пока пусто 😔');
-        }
+        if (products.length === 0) return ctx.reply('В этой категории пока пусто 😔');
 
+        // Получаем избранное
         const user = await getOrCreateUser(ctx);
-        // Проверяем избранное (упрощено)
         const favorites = user ? await prisma.favoriteProduct.findMany({
-            where: { customerId: user.id, productId: { in: products.map(p => p.id) } }
+            where: { customerId: user.id, productId: { in: products.map(p=>p.id) } }
         }) : [];
         const favIds = new Set(favorites.map(f => f.productId));
 
@@ -2749,92 +2731,33 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
             await sendProductCard(ctx, product, caption, keyboard);
         }
         
-        // Кнопка возврата внизу списка
         await ctx.reply('Показаны все товары', Markup.inlineKeyboard([
              [Markup.button.callback('⬅ Назад к категориям', 'back_to_cats')]
         ]));
 
     } catch (e) {
-        console.error("Ошибка загрузки категории:", e);
-        ctx.reply('Ошибка при загрузке товаров.');
+        console.error("Ошибка поиска товаров:", e);
+        ctx.reply('Ошибка при загрузке меню.');
     }
   });
 
-  // --- ОБРАБОТКА ФЛАГОВ (Популярное, Акции...) ---
-  // Используем ваш универсальный метод showProductsByFlag, но адаптированный
-  const showByFlag = async (ctx, flag) => {
-      const products = await prisma.product.findMany({ where: { [flag]: true } });
-      if (products.length === 0) return ctx.reply('В этом разделе пока пусто.');
-      
-      for (const product of products) {
-          const caption = buildProductCaption(ctx, product);
-          const keyboard = buildProductKeyboard(ctx, product, false);
-          await sendProductCard(ctx, product, caption, keyboard);
-      }
-  };
-
-  bot.hears(['🔥 Популярное'], (ctx) => showByFlag(ctx, 'isPopular'));
-  bot.hears(['🎁 Акции'], (ctx) => showByFlag(ctx, 'isPromotion'));
-  bot.hears(['⭐ Рекомендации шефа'], (ctx) => showByFlag(ctx, 'isChefRecommendation'));
+  // --- КОРЗИНА И АДМИНКА ---
   
-  // Оператор
-  bot.hears(['👨‍💻 Оператор'], (ctx) => ctx.replyWithHTML(ctx.i18n.t('messages.operator_contact') || 'Свяжитесь с нами: @manager'));
-
-  // --- КОРЗИНА ---
-  bot.hears(['🧰 Корзина'], async (ctx) => {
-    const cart = ctx.session.cart || [];
-    if (cart.length === 0) return ctx.reply('Корзина пуста.');
-
-    let text = '<b>🛍 Ваша корзина:</b>\n\n';
-    let total = 0;
-    const counts = {};
-    cart.forEach(p => counts[p.id] = (counts[p.id] || 0) + 1);
-    
-    // Уникальные товары
-    const uniqueIds = [...new Set(cart.map(p => p.id))];
-    // Подгружаем актуальные данные (цена могла измениться)
-    const products = await prisma.product.findMany({ where: { id: { in: uniqueIds } } });
-
-    products.forEach(p => {
-        const count = counts[p.id];
-        const sum = p.price * count;
-        const name = getL10nField(ctx, p, 'name');
-        text += `▫️ ${name} x${count} = ${sum.toFixed(2)}€\n`;
-        total += sum;
-    });
-
-    text += `\n<b>Итого: ${total.toFixed(2)}€</b>`;
-
-    await ctx.replyWithHTML(text, Markup.inlineKeyboard([
-        [Markup.button.callback('✅ Оформить заказ', 'checkout')],
-        [Markup.button.callback('🗑 Очистить', 'clear_cart')]
-    ]));
-  });
-
-  // --- ACTIONS (КНОПКИ) ---
-
-  bot.action('back_to_cats', async (ctx) => {
-      await ctx.deleteMessage();
-      await ctx.reply('Выберите категорию:', getCategoriesKeyboard());
-  });
-  
-  bot.action('clear_cart', (ctx) => {
-      ctx.session.cart = [];
-      ctx.answerCbQuery('Корзина очищена');
-      ctx.reply('Корзина пуста.', showMainMenu(ctx)); // Возврат в меню
-  });
-
+  // ⚡️ ИСПРАВЛЕНИЕ: undefined name в корзине
   bot.action(/add_cart_(\d+)/, async (ctx) => {
       const id = parseInt(ctx.match[1]);
       const product = await prisma.product.findUnique({ where: { id } });
+      
       if (product) {
           ctx.session.cart = ctx.session.cart || [];
           ctx.session.cart.push(product);
           
-          // ВАШ ЗАПРОС: "SET ICON добавлен в корзину... Хотите продолжить?"
-          await ctx.reply(`${product.name} добавлен в корзину 🛍\nХотите продолжить?`, 
+          // Используем хелпер для имени, т.к. product.name не существует
+          const name = getL10nField(ctx, product, 'name');
+
+          await ctx.reply(`${name} добавлен в корзину 🛍\nХотите продолжить?`, 
             Markup.keyboard([
-                ['➕ Добавить ещё'],
+                ['➕ Добавить ещё'], // Логика для этой кнопки ниже
                 ['⬅ Меню']
             ]).resize()
           );
@@ -2842,16 +2765,94 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
       await ctx.answerCbQuery();
   });
   
-  // Логика для кнопки "Добавить ещё"
-  bot.hears('➕ Добавить ещё', async (ctx) => {
-       await ctx.reply('Выберите категорию:', getCategoriesKeyboard());
+  // Логика кнопки "Добавить ещё"
+  bot.hears('➕ Добавить ещё', (ctx) => ctx.reply('Выберите категорию:', getCategoriesMenu()));
+
+  // Просмотр корзины
+  bot.hears(['🧰 Корзина', 'Cart'], async (ctx) => {
+      const cart = ctx.session.cart || [];
+      if (cart.length === 0) return ctx.reply('Корзина пуста 💨');
+
+      let text = '<b>🛒 Ваша корзина:</b>\n\n';
+      let total = 0;
+      const counts = {};
+      cart.forEach(p => counts[p.id] = (counts[p.id] || 0) + 1);
+      const uniqueIds = [...new Set(cart.map(p => p.id))];
+      
+      // Подгружаем свежие данные
+      const products = await prisma.product.findMany({ where: { id: { in: uniqueIds } } });
+
+      products.forEach(p => {
+          const count = counts[p.id];
+          const sum = p.price * count;
+          const name = getL10nField(ctx, p, 'name');
+          text += `▫️ ${name} x${count} = ${sum.toFixed(2)}€\n`;
+          total += sum;
+      });
+      text += `\n<b>Итого: ${total.toFixed(2)}€</b>`;
+
+      await ctx.replyWithHTML(text, Markup.inlineKeyboard([
+          [Markup.button.callback('✅ Оформить заказ', 'checkout')],
+          [Markup.button.callback('🗑 Очистить', 'clear_cart')]
+      ]));
   });
 
-  // Checkout (Оформление)
+  bot.action('clear_cart', (ctx) => {
+      ctx.session.cart = [];
+      ctx.answerCbQuery('Очищено');
+      ctx.reply('Корзина пуста', getMainMenu(ctx));
+  });
+
+  // --- ИЗБРАННОЕ ---
+  bot.hears(['❤️ Избранное'], async (ctx) => {
+      const user = await getOrCreateUser(ctx);
+      if (!user) return;
+      
+      const favs = await prisma.favoriteProduct.findMany({
+          where: { customerId: user.id },
+          include: { product: true }
+      });
+      
+      if (favs.length === 0) return ctx.reply('В избранном пусто');
+      
+      for (const f of favs) {
+          const caption = buildProductCaption(ctx, f.product);
+          const keyboard = buildProductKeyboard(ctx, f.product, true);
+          await sendProductCard(ctx, f.product, caption, keyboard);
+      }
+  });
+
+  bot.action(/add_fav_(\d+)/, async (ctx) => {
+      const pid = parseInt(ctx.match[1]);
+      const user = await getOrCreateUser(ctx);
+      try {
+        await prisma.favoriteProduct.create({ data: { customerId: user.id, productId: pid } });
+        // Обновляем клавиатуру на "Удалить"
+        const p = await prisma.product.findUnique({ where: { id: pid }});
+        const kb = buildProductKeyboard(ctx, p, true);
+        await ctx.editMessageReplyMarkup(kb.reply_markup);
+      } catch (e) {} 
+      ctx.answerCbQuery('Добавлено в избранное');
+  });
+
+  bot.action(/rem_fav_(\d+)/, async (ctx) => {
+      const pid = parseInt(ctx.match[1]);
+      const user = await getOrCreateUser(ctx);
+      try {
+        await prisma.favoriteProduct.deleteMany({ where: { customerId: user.id, productId: pid } });
+        // Обновляем клавиатуру на "Добавить"
+        const p = await prisma.product.findUnique({ where: { id: pid }});
+        const kb = buildProductKeyboard(ctx, p, false);
+        await ctx.editMessageReplyMarkup(kb.reply_markup);
+      } catch (e) {}
+      ctx.answerCbQuery('Удалено из избранного');
+  });
+
+  // --- ОФОРМЛЕНИЕ ЗАКАЗА ---
   bot.action('checkout', async (ctx) => {
       await ctx.deleteMessage();
       ctx.session.step = 'awaiting_phone';
-      await ctx.reply('Для оформления заказа отправьте ваш номер телефона:', 
+      await ctx.reply('Отправьте ваш номер телефона для связи:', 
           Markup.keyboard([
               [Markup.button.contactRequest('📱 Отправить телефон')],
               ['❌ Отмена']
@@ -2861,62 +2862,70 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
 
   bot.hears('❌ Отмена', (ctx) => {
       ctx.session.step = null;
-      showMainMenu(ctx);
+      ctx.reply('Отменено', getMainMenu(ctx));
   });
 
   bot.on('contact', async (ctx) => {
       if (ctx.session.step === 'awaiting_phone') {
-          const phone = ctx.message.contact.phone_number;
-          await finalizeOrder(ctx, phone);
-      }
-  });
-  
-  // Текст (если ввели номер вручную)
-  bot.on('text', async (ctx, next) => {
-      if (ctx.session.step === 'awaiting_phone') {
-          if (ctx.message.text.length > 6) {
-              await finalizeOrder(ctx, ctx.message.text);
-          } else {
-              ctx.reply('Слишком короткий номер.');
-          }
-      } else {
-          return next();
+          await finalizeOrder(ctx, ctx.message.contact.phone_number);
       }
   });
 
-  // Функция финализации (упрощенная из вашего кода)
+  bot.on('text', async (ctx, next) => {
+      if (ctx.session.step === 'awaiting_phone') {
+          await finalizeOrder(ctx, ctx.message.text);
+      } else {
+          next();
+      }
+  });
+
   const finalizeOrder = async (ctx, phone) => {
       const cart = ctx.session.cart || [];
       if (cart.length === 0) return ctx.reply('Корзина пуста');
-
-      let total = cart.reduce((sum, p) => sum + p.price, 0);
       
-      // Сохраняем в БД
+      let total = cart.reduce((sum, p) => sum + p.price, 0);
       const user = await getOrCreateUser(ctx);
+
+      // Сохраняем заказ
       await prisma.order.create({
           data: {
               customerId: user.id,
               totalPrice: total,
               status: 'PENDING',
-              // Упрощенное создание items, чтобы не усложнять код здесь
+              items: {
+                  create: cart.map(p => ({
+                      productId: p.id,
+                      quantity: 1, // Упрощенно считаем по 1, если нужно группировать - добавьте логику
+                      price: p.price
+                  }))
+              }
           }
       });
-
-      // Уведомление админу
-      try {
-         const adminId = process.env.ADMIN_TELEGRAM_CHAT_ID;
-         if (adminId) {
-             await bot.telegram.sendMessage(adminId, `🔥 НОВЫЙ ЗАКАЗ!\nТел: ${phone}\nСумма: ${total}€`);
-         }
-      } catch(e) {}
+      
+      // Админское уведомление
+      if (process.env.ADMIN_TELEGRAM_CHAT_ID) {
+          try {
+             await bot.telegram.sendMessage(
+                 process.env.ADMIN_TELEGRAM_CHAT_ID, 
+                 `🔥 НОВЫЙ ЗАКАЗ (TG)!\nКлиент: ${user.firstName}\nТел: ${phone}\nСумма: ${total.toFixed(2)}€`
+             );
+          } catch(e) { console.error('Ошибка уведомления админа', e.message); }
+      }
 
       ctx.session.cart = [];
       ctx.session.step = null;
-      await ctx.reply('✅ Ваш заказ принят! Оператор скоро свяжется с вами.', Markup.removeKeyboard());
-      showMainMenu(ctx);
+      await ctx.reply('✅ Спасибо! Заказ принят. Мы скоро свяжемся с вами.', Markup.removeKeyboard());
+      // Возврат в меню через паузу, чтобы клавиатура успела обновиться
+      setTimeout(() => ctx.reply('Главное меню', getMainMenu(ctx)), 1000);
   };
 
-  // --- ЗАПУСК ---
+  // Action для кнопки "Назад" в списке товаров
+  bot.action('back_to_cats', async (ctx) => {
+      await ctx.deleteMessage();
+      await ctx.reply('Выберите категорию:', getCategoriesMenu());
+  });
+
+  // Запуск Webhook
   const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://sushi-icon-promonl.onrender.com';
   try {
     app.use(await bot.createWebhook({ domain: WEBHOOK_URL }));
@@ -2925,6 +2934,7 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
     console.warn('⚠️ Ошибка Webhook:', err.message);
   }
 }
+// --- КОНЕЦ ИСПРАВЛЕННОГО БОТА ---
 
 // --- НАЧАЛО БЭКЕНДА ДЛЯ INSTAGRAM БОТА ---
 // ----------------------------------------------------------------
