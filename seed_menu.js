@@ -11,7 +11,7 @@ async function main() {
   await prisma.productCategory.deleteMany({});
   console.log('Старое меню очищено.');
 
-  // --- 2. СОЗДАЕМ КАТЕГОРИИ И ПРОДУКТЫ (одним запросом) ---
+  // --- 2. СОЗДАЕМ КАТЕГОРИИ И ПРОДУКТЫ (одним запросом) ---.
 
   const category1 = await prisma.productCategory.create({
     data: {

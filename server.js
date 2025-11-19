@@ -52,14 +52,14 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
 const smtpEnabled = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SMTP_FROM);
 const mailTransporter = smtpEnabled
   ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    })
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: Number(process.env.SMTP_PORT) === 465,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  })
   : null;
 
-  // НОВОЕ MIDDLEWARE ДЛЯ ПРОВЕРКИ ТОКЕНА СЕССИИ АДМИНИСТРАТОРА
+// НОВОЕ MIDDLEWARE ДЛЯ ПРОВЕРКИ ТОКЕНА СЕССИИ АДМИНИСТРАТОРА
 const authenticateSession = async (req, res, next) => {
   try {
     const rawOwnerToken = req.headers["x-owner-token"];
@@ -91,7 +91,7 @@ const authenticateSession = async (req, res, next) => {
     // Все в порядке, прикрепляем ID владельца к запросу
     req.ownerId = session.ownerId;
     next(); // Передаем управление следующему обработчику
-    
+
   } catch (error) {
     console.error("Ошибка в middleware authenticateSession:", error);
     return res.status(500).json({ message: "Ошибка сервера при проверке токена." });
@@ -105,7 +105,7 @@ async function getRealLocationInfo(ipAddress) {
   return new Promise((resolve) => {
     // Пропускаем localhost и приватные IP
     if (ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost' ||
-        ipAddress.startsWith('192.168.') || ipAddress.startsWith('10.') || ipAddress.startsWith('172.')) {
+      ipAddress.startsWith('192.168.') || ipAddress.startsWith('10.') || ipAddress.startsWith('172.')) {
       resolve(null);
       return;
     }
@@ -121,22 +121,22 @@ async function getRealLocationInfo(ipAddress) {
 
     const req = https.request(options, (res) => {
       let data = '';
-      
+
       res.on('data', (chunk) => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         try {
           const locationData = JSON.parse(data);
           console.log('Server: External API response:', locationData);
-          
+
           if (locationData.error) {
             console.log('Server: External API error:', locationData.reason);
             resolve(null);
             return;
           }
-          
+
           resolve({
             country: locationData.country_name || locationData.country,
             countryCode: locationData.country_code,
@@ -186,23 +186,23 @@ async function getRealLocationInfo(ipAddress) {
 // Функция для получения информации об устройстве и местоположении
 async function getDeviceAndLocationInfo(req) {
   const userAgent = req.get('User-Agent') || '';
-  
+
   // Улучшенное определение IP адреса
-  let ipAddress = req.ip || 
-    req.connection.remoteAddress || 
-    req.socket.remoteAddress || 
+  let ipAddress = req.ip ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
     (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
     req.headers['x-real-ip'] ||
     req.headers['x-client-ip'] ||
     req.headers['cf-connecting-ip'] ||
     'unknown';
-  
+
   // Очищаем IPv6 адреса
   if (ipAddress.startsWith('::ffff:')) {
     ipAddress = ipAddress.substring(7);
   }
-  
+
   console.log('Server: User-Agent:', userAgent);
   console.log('Server: IP Address:', ipAddress);
   console.log('Server: Headers:', {
@@ -211,17 +211,17 @@ async function getDeviceAndLocationInfo(req) {
     'x-client-ip': req.headers['x-client-ip'],
     'cf-connecting-ip': req.headers['cf-connecting-ip']
   });
-  
+
   // Парсим User-Agent
   const parser = new UAParser(userAgent);
   const result = parser.getResult();
-  
+
   console.log('Server: Parsed UA result:', result);
-  
+
   // Получаем информацию о местоположении по IP
   const geo = geoip.lookup(ipAddress);
   console.log('Server: Geo lookup result:', geo);
-  
+
   // Дополнительная информация о местоположении
   if (geo) {
     console.log('Server: Detailed geo info:', {
@@ -244,11 +244,11 @@ async function getDeviceAndLocationInfo(req) {
   // Получаем дополнительную информацию через внешний API
   const externalLocation = await getRealLocationInfo(ipAddress);
   console.log('Server: External location data:', externalLocation);
-  
+
   // Улучшенное определение браузера Safari
   let browserName = result.browser.name || 'Unknown';
   let browserVersion = result.browser.version || '';
-  
+
   // Специальная обработка для Safari
   if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
     browserName = 'Safari';
@@ -258,11 +258,11 @@ async function getDeviceAndLocationInfo(req) {
       browserVersion = safariMatch[1];
     }
   }
-  
+
   // Улучшенное определение macOS
   let osName = result.os.name || 'Unknown';
   let osVersion = result.os.version || '';
-  
+
   if (userAgent.includes('Mac OS X')) {
     osName = 'macOS';
     // Извлекаем версию macOS из User-Agent
@@ -271,17 +271,17 @@ async function getDeviceAndLocationInfo(req) {
       osVersion = macMatch[1].replace(/_/g, '.');
     }
   }
-  
+
   // Формируем полное название браузера с версией
   const fullBrowserName = browserVersion ? `${browserName} ${browserVersion}` : browserName;
-  
+
   // Формируем полное название ОС с версией
   const fullOsName = osVersion ? `${osName} ${osVersion}` : osName;
-  
+
   // Определяем тип устройства более детально
   let deviceType = result.device.type || 'desktop';
   let deviceModel = result.device.model || 'Unknown';
-  
+
   // Специальная обработка для desktop устройств
   if (deviceType === 'desktop' || !deviceType) {
     deviceType = 'desktop';
@@ -293,7 +293,7 @@ async function getDeviceAndLocationInfo(req) {
       deviceModel = 'Linux PC';
     }
   }
-  
+
   // Обработка localhost IP
   let locationDetails = 'Unknown';
   let country = 'Unknown';
@@ -303,19 +303,19 @@ async function getDeviceAndLocationInfo(req) {
   let longitude = null;
   let timezone = 'Unknown';
   let isp = 'Unknown';
-  
+
   if (ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost') {
     // Для localhost показываем реалистичные данные разработки
-   const staticLocation = { 
-      country: 'Netherlands', 
-      city: 'Amsterdam', 
-      region: 'North Holland', 
-      timezone: 'Europe/Amsterdam', 
-      isp: 'Local Development', 
-      lat: 52.3676, 
-      lng: 4.9041 
+    const staticLocation = {
+      country: 'Netherlands',
+      city: 'Amsterdam',
+      region: 'North Holland',
+      timezone: 'Europe/Amsterdam',
+      isp: 'Local Development',
+      lat: 52.3676,
+      lng: 4.9041
     };
-    
+
     locationDetails = `${staticLocation.city}, ${staticLocation.country}`;
     country = staticLocation.country;
     city = staticLocation.city;
@@ -331,7 +331,7 @@ async function getDeviceAndLocationInfo(req) {
     if (externalLocation.region) addressParts.push(externalLocation.region);
     if (externalLocation.country) addressParts.push(externalLocation.country);
     locationDetails = addressParts.join(', ');
-    
+
     country = externalLocation.country || 'Unknown';
     city = externalLocation.city || 'Unknown';
     region = externalLocation.region || 'Unknown';
@@ -339,7 +339,7 @@ async function getDeviceAndLocationInfo(req) {
     longitude = externalLocation.longitude || null;
     timezone = externalLocation.timezone || 'Unknown';
     isp = externalLocation.isp || 'Unknown';
-    
+
     console.log('Server: Using external API data:', {
       ip: ipAddress,
       country: country,
@@ -353,24 +353,24 @@ async function getDeviceAndLocationInfo(req) {
   } else if (geo) {
     // Формируем полную адресу с правильным порядком
     const addressParts = [];
-    
+
     // Добавляем город
     if (geo.city) {
       addressParts.push(geo.city);
     }
-    
+
     // Добавляем регион/область
     if (geo.region) {
       addressParts.push(geo.region);
     }
-    
+
     // Добавляем страну
     if (geo.country) {
       addressParts.push(geo.country);
     }
-    
+
     locationDetails = addressParts.join(', ');
-    
+
     // Устанавливаем основные данные
     country = geo.country || 'Unknown';
     city = geo.city || 'Unknown';
@@ -378,7 +378,7 @@ async function getDeviceAndLocationInfo(req) {
     latitude = geo.ll?.[0] || null;
     longitude = geo.ll?.[1] || null;
     timezone = geo.timezone || 'Unknown';
-    
+
     // Определяем ISP на основе доступных данных
     if (geo.is_anonymous_proxy) {
       isp = 'Anonymous Proxy';
@@ -391,7 +391,7 @@ async function getDeviceAndLocationInfo(req) {
     } else {
       isp = 'Unknown ISP';
     }
-    
+
     // Логируем для отладки
     console.log('Server: Processed geo data:', {
       ip: ipAddress,
@@ -411,7 +411,7 @@ async function getDeviceAndLocationInfo(req) {
   } else {
     // Если geo данные недоступны, попробуем определить по IP другим способом
     console.log('Server: No geo data available for IP:', ipAddress);
-    
+
     // Для некоторых IP адресов можем попробовать альтернативные методы
     if (ipAddress.startsWith('192.168.') || ipAddress.startsWith('10.') || ipAddress.startsWith('172.')) {
       locationDetails = 'Private Network';
@@ -422,7 +422,7 @@ async function getDeviceAndLocationInfo(req) {
       isp = 'Private Network';
     }
   }
-  
+
   // Дополнительные поля для localhost
   let additionalFields = {};
   if (ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost') {
@@ -471,9 +471,9 @@ async function getDeviceAndLocationInfo(req) {
     callingCode: externalLocation?.callingCode || additionalFields.callingCode,
     utcOffset: externalLocation?.utcOffset || additionalFields.utcOffset,
   };
-  
+
   console.log('Server: Final device info:', deviceInfo);
-  
+
   return deviceInfo;
 }
 async function sendBirthdayEmailToCustomer(customer) {
@@ -617,15 +617,15 @@ app.post("/api/register", async (req, res) => {
   // ИСПРАВЛЕНИЕ: Добавлен try...catch
   try {
     console.log('Server: Получены данные регистрации:', req.body);
-    
+
     const data = registrationSchema.parse(req.body);
 
     console.log('Server: Дата рождения (строка):', data.birthDate);
-    
+
     const birthDate = data.birthDate ? new Date(data.birthDate) : undefined;
-    
+
     console.log('Server: Дата рождения (объект Date):', birthDate);
-    
+
     if (birthDate && Number.isNaN(birthDate.getTime())) {
       console.log('Server: Ошибка - некорректный формат даты');
       return res.status(400).json({ message: "Некорректный формат даты." });
@@ -644,17 +644,17 @@ app.post("/api/register", async (req, res) => {
         status: "exists",
       });
     }
-    
+
     // Проверяем email
     existingCustomer = await prisma.customer.findFirst({
-        where: { email: data.email }
+      where: { email: data.email }
     });
-    
+
     if (existingCustomer) {
-        return res.status(400).json({
-            message: "Этот email уже используется.",
-            status: "email_exists",
-        });
+      return res.status(400).json({
+        message: "Этот email уже используется.",
+        status: "email_exists",
+      });
     }
     // --- Конец логики проверки ---
     const discountCode = await generateUniqueDiscountCode();
@@ -684,10 +684,10 @@ app.post("/api/register", async (req, res) => {
     // Отправляем код верификации на email
     console.log(`\n📧 Отправка кода верификации на ${customer.email}...`);
     console.log(`🔑 Код верификации: ${verificationCode}`);
-    
+
     const sendgridApiKey = process.env.SENDGRID_API_KEY?.replace(/^['"]|['"]$/g, '')?.trim();
     const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL?.replace(/^['"]|['"]$/g, '')?.trim();
-    
+
     if (sendgridApiKey && sendgridFromEmail) {
       const msg = {
         to: customer.email,
@@ -791,7 +791,7 @@ app.post("/api/register", async (req, res) => {
     } else {
       console.log('Server: Пропуск отправки СМС - Twilio Messaging Service не настроен.');
     }
-    
+
 
     return res.status(201).json({
       status: "pending_verification",
@@ -808,10 +808,10 @@ app.post("/api/register", async (req, res) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-     // --- ИЗМЕНЕНИЕ: Улучшенная обратная связь при ошибке Zod ---
+      // --- ИЗМЕНЕНИЕ: Улучшенная обратная связь при ошибке Zod ---
       const emailError = error.flatten().fieldErrors.email;
       if (emailError) {
-          return res.status(400).json({ message: "Некорректный email.", errors: error.flatten() });
+        return res.status(400).json({ message: "Некорректный email.", errors: error.flatten() });
       }
       return res.status(400).json({ message: "Некорректные данные.", errors: error.flatten() });
     }
@@ -1015,17 +1015,17 @@ app.post("/api/owner/login", async (req, res) => {
     let ownerId = "admin-001"; // ID по умолчанию
 
     // Проверяем только жестко заданные данные
-    if (email !== ADMIN_CREDENTIALS.email || 
-        accessCode !== ADMIN_CREDENTIALS.accessCode || 
-        password !== ADMIN_CREDENTIALS.password) {
-      
+    if (email !== ADMIN_CREDENTIALS.email ||
+      accessCode !== ADMIN_CREDENTIALS.accessCode ||
+      password !== ADMIN_CREDENTIALS.password) {
+
       // ... (код для логирования неудачной попытки входа - он в порядке) ...
       let owner;
       try {
         const owner = await prisma.owner.findUnique({
           where: { accessCode: ADMIN_CREDENTIALS.accessCode },
         });
-        
+
         if (owner) {
           ownerId = owner.id; // Если нашли - используем настоящий ID
         }
@@ -1081,121 +1081,121 @@ app.post("/api/owner/login", async (req, res) => {
         console.error("Ошибка при сохранении неудачной сессии:", sessionError);
       }
 
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: "Доступ запрещен. Эта страница доступна только администраторам.",
-        success: false 
+        success: false
       });
     }
 
-     // --- УСПЕШНЫЙ ВХОД (ШАГ 1) ---
+    // --- УСПЕШНЫЙ ВХОД (ШАГ 1) ---
 
-      let owner;
-      try {
-        // Ищем владельца строго по accessCode (он уникален и не меняется)
-        owner = await prisma.owner.findUnique({
-          where: { accessCode: ADMIN_CREDENTIALS.accessCode },
-        });
-
-        if (owner) {
-          // Если админ уже есть, обновляем только то, что нужно
-          const updateData = { lastLogin: new Date() };
-
-          // Если email в базе отличается от ADMIN_CREDENTIALS.email — обновляем
-          if (owner.email !== ADMIN_CREDENTIALS.email) {
-            console.log(`📧 Email администратора обновлён: ${owner.email} → ${ADMIN_CREDENTIALS.email}`);
-            updateData.email = ADMIN_CREDENTIALS.email;
-          }
-
-          await prisma.owner.update({
-            where: { id: owner.id },
-            data: updateData,
-          });
-        } else {
-          // Если нет — создаем нового
-          owner = await prisma.owner.create({
-            data: {
-              email: ADMIN_CREDENTIALS.email,
-              name: ADMIN_CREDENTIALS.name,
-              accessCode: ADMIN_CREDENTIALS.accessCode,
-              password: ADMIN_CREDENTIALS.password,
-              isEmailVerified: true, // админ всегда верифицирован
-            },
-          });
-          console.log("🆕 Создан новый владелец-админ:", owner.email);
-        }
-
-        ownerId = owner.id;
-      } catch (ownerError) {
-        console.error("Ошибка при создании/обновлении владельца:", ownerError);
-        throw new Error("Ошибка БД при обновлении владельца.");
-      }
-
-      // ----------------------------------------------------------------
-      // --- ИЗМЕНЕНИЕ ЛОГИКИ ЗДЕСЬ ---
-      // ----------------------------------------------------------------
-      
-      // 1. Генерируем код верификации
-      const verificationCode = crypto.randomInt(100000, 999999).toString();
-
-      // 2. Сохраняем код в БД
-      try {
-        await prisma.owner.update({
-          where: { id: ownerId },
-          data: { emailVerificationCode: verificationCode }
-        });
-      } catch (dbError) {
-         console.error("Ошибка при сохранении кода верификации админа:", dbError);
-         throw new Error("Ошибка БД при сохранении кода.");
-      }
-      
-      // 3. Отправляем код на email
-      const sendgridApiKey = process.env.SENDGRID_API_KEY?.replace(/^['"]|['"]$/g, '')?.trim();
-      const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL?.replace(/^['"]|['"]$/g, '')?.trim();
-      
-      if (sendgridApiKey && sendgridFromEmail) {
-        const msg = {
-          to: owner.email,
-          from: sendgridFromEmail,
-          subject: 'Код входа в Sushi Icon Admin',
-          text: `Ваш код для входа в панель администратора: ${verificationCode}`,
-          html: `<strong>Ваш код для входа в панель администратора: ${verificationCode}</strong>`,
-        };
-        try {
-          await sgMail.send(msg);
-          console.log(`Server: Письмо верификации отправлено админу ${owner.email}`);
-        } catch (emailError) {
-          console.error('Server: Ошибка отправки письма верификации админу:', emailError.response ? emailError.response.body : emailError);
-          // ВАЖНО: Если email не ушел, впускать нельзя
-          throw new Error("Ошибка отправки email.");
-        }
-      } else {
-        console.log('Server: ОШИБКА: SENDGRID не настроен для входа админа.');
-        throw new Error("Сервис email не настроен.");
-      }
-
-      // 4. Отправляем ответ "ожидание верификации"
-      return res.status(200).json({
-        message: "Учетные данные верны. Код отправлен на ваш email.",
-        success: true,
-        status: "pending_verification"
+    let owner;
+    try {
+      // Ищем владельца строго по accessCode (он уникален и не меняется)
+      owner = await prisma.owner.findUnique({
+        where: { accessCode: ADMIN_CREDENTIALS.accessCode },
       });
-  // ----------------------------------------------------------------
-  // --- КОНЕЦ ИЗМЕНЕНИЯ ---
-  // ----------------------------------------------------------------
+
+      if (owner) {
+        // Если админ уже есть, обновляем только то, что нужно
+        const updateData = { lastLogin: new Date() };
+
+        // Если email в базе отличается от ADMIN_CREDENTIALS.email — обновляем
+        if (owner.email !== ADMIN_CREDENTIALS.email) {
+          console.log(`📧 Email администратора обновлён: ${owner.email} → ${ADMIN_CREDENTIALS.email}`);
+          updateData.email = ADMIN_CREDENTIALS.email;
+        }
+
+        await prisma.owner.update({
+          where: { id: owner.id },
+          data: updateData,
+        });
+      } else {
+        // Если нет — создаем нового
+        owner = await prisma.owner.create({
+          data: {
+            email: ADMIN_CREDENTIALS.email,
+            name: ADMIN_CREDENTIALS.name,
+            accessCode: ADMIN_CREDENTIALS.accessCode,
+            password: ADMIN_CREDENTIALS.password,
+            isEmailVerified: true, // админ всегда верифицирован
+          },
+        });
+        console.log("🆕 Создан новый владелец-админ:", owner.email);
+      }
+
+      ownerId = owner.id;
+    } catch (ownerError) {
+      console.error("Ошибка при создании/обновлении владельца:", ownerError);
+      throw new Error("Ошибка БД при обновлении владельца.");
+    }
+
+    // ----------------------------------------------------------------
+    // --- ИЗМЕНЕНИЕ ЛОГИКИ ЗДЕСЬ ---
+    // ----------------------------------------------------------------
+
+    // 1. Генерируем код верификации
+    const verificationCode = crypto.randomInt(100000, 999999).toString();
+
+    // 2. Сохраняем код в БД
+    try {
+      await prisma.owner.update({
+        where: { id: ownerId },
+        data: { emailVerificationCode: verificationCode }
+      });
+    } catch (dbError) {
+      console.error("Ошибка при сохранении кода верификации админа:", dbError);
+      throw new Error("Ошибка БД при сохранении кода.");
+    }
+
+    // 3. Отправляем код на email
+    const sendgridApiKey = process.env.SENDGRID_API_KEY?.replace(/^['"]|['"]$/g, '')?.trim();
+    const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL?.replace(/^['"]|['"]$/g, '')?.trim();
+
+    if (sendgridApiKey && sendgridFromEmail) {
+      const msg = {
+        to: owner.email,
+        from: sendgridFromEmail,
+        subject: 'Код входа в Sushi Icon Admin',
+        text: `Ваш код для входа в панель администратора: ${verificationCode}`,
+        html: `<strong>Ваш код для входа в панель администратора: ${verificationCode}</strong>`,
+      };
+      try {
+        await sgMail.send(msg);
+        console.log(`Server: Письмо верификации отправлено админу ${owner.email}`);
+      } catch (emailError) {
+        console.error('Server: Ошибка отправки письма верификации админу:', emailError.response ? emailError.response.body : emailError);
+        // ВАЖНО: Если email не ушел, впускать нельзя
+        throw new Error("Ошибка отправки email.");
+      }
+    } else {
+      console.log('Server: ОШИБКА: SENDGRID не настроен для входа админа.');
+      throw new Error("Сервис email не настроен.");
+    }
+
+    // 4. Отправляем ответ "ожидание верификации"
+    return res.status(200).json({
+      message: "Учетные данные верны. Код отправлен на ваш email.",
+      success: true,
+      status: "pending_verification"
+    });
+    // ----------------------------------------------------------------
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+    // ----------------------------------------------------------------
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        message: "Некорректные данные.", 
+      return res.status(400).json({
+        message: "Некорректные данные.",
         errors: error.flatten(),
-        success: false 
+        success: false
       });
     }
 
     // Это поймает ошибку "ReferenceError" и другие
     console.error(`Необработанная ошибка /api/owner/login: ${error.message}`);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: `Ошибка сервера при аутентификации: ${error.message}`,
-      success: false 
+      success: false
     });
   }
 });
@@ -1231,10 +1231,10 @@ app.post("/api/owner/verify-login", async (req, res) => {
       console.log(`[Admin Verify] ОШИБКА: Коды не совпадают.`);
       return res.status(400).json({ success: false, message: "Неверный код верификации." });
     }
-    
+
     // 3. УСПЕХ: Коды совпали. Очищаем код и создаем сессию.
     console.log(`[Admin Verify] УСПЕХ: Коды совпали. Создаем сессию для ${owner.email}.`);
-    
+
     await prisma.owner.update({
       where: { id: owner.id },
       data: {
@@ -1294,7 +1294,7 @@ app.post("/api/owner/verify-login", async (req, res) => {
       console.error("Ошибка при сохранении сессии:", sessionError);
       throw new Error("Ошибка БД при создании сессии.");
     }
-    
+
     if (!session) {
       throw new Error("Не удалось создать сессию по неизвестной причине.");
     }
@@ -1328,12 +1328,12 @@ app.post("/api/owner/verify-login", async (req, res) => {
 
 
 // Получение информации о владельце
-app.get("/api/owner/profile",authenticateSession, async (req, res) => {
+app.get("/api/owner/profile", authenticateSession, async (req, res) => {
   // ИСПРАВЛЕНИЕ: Добавлен try...catch
   try {
     const rawOwnerToken = req.headers["x-owner-token"];
     const ownerToken = Array.isArray(rawOwnerToken) ? rawOwnerToken[0] : rawOwnerToken;
-    
+
     if (!ownerToken) {
       return res.status(401).json({ message: "Токен не предоставлен." });
     }
@@ -1347,21 +1347,21 @@ app.get("/api/owner/profile",authenticateSession, async (req, res) => {
     }
 
     // Проверяем новый токен (email владельца)
-  //  console.log(ownerToken);
-  //  const owner = await prisma.owner.findUnique({
-  //     where: { email: ownerToken },
-  //   });
+    //  console.log(ownerToken);
+    //  const owner = await prisma.owner.findUnique({
+    //     where: { email: ownerToken },
+    //   });
 
-  //   if (!owner || !owner.isActive) {
-  //     return res.status(401).json({ message: "Неверный токен или аккаунт заблокирован." });
-  //   }
-  
+    //   if (!owner || !owner.isActive) {
+    //     return res.status(401).json({ message: "Неверный токен или аккаунт заблокирован." });
+    //   }
+
     // --- ИСПРАВЛЕНИЕ: 'owner' не был определен ---
     // req.ownerId прикрепляется middleware 'authenticateSession'
     const owner = await prisma.owner.findUnique({
       where: { id: req.ownerId }
     });
-    
+
     if (!owner) {
       return res.status(404).json({ message: "Владелец не найден." });
     }
@@ -1436,9 +1436,9 @@ app.delete("/api/customer/:id", authenticateSession, async (req, res) => {
 
     // 3. Отправляем успешный ответ
     console.log(`[Admin] Клиент ${id} успешно удален.`);
-    return res.status(200).json({ 
-      success: true, 
-      message: "Клиент успешно удален." 
+    return res.status(200).json({
+      success: true,
+      message: "Клиент успешно удален."
     });
 
   } catch (error) {
@@ -1644,7 +1644,7 @@ app.get("/api/owner/login-sessions", authenticateSession, async (req, res) => {
     const sessions = await prisma.ownerLoginSession.findMany({
       where: { ownerId: req.ownerId }, // Используем ID из сессии
       orderBy: { loginAt: "desc" },
-      take: 50, 
+      take: 50,
     });
 
     res.json(sessions);
@@ -1670,7 +1670,7 @@ app.get("/api/export/customers", authenticateSession, async (req, res) => {
   try {
     // const rawOwnerToken = req.headers["x-owner-token"];
     // const ownerToken = Array.isArray(rawOwnerToken) ? rawOwnerToken[0] : rawOwnerToken;
-    
+
     // if (!ownerToken) {
     //   return res.status(401).json({ message: "Токен не предоставлен." });
     // }
@@ -1689,7 +1689,7 @@ app.get("/api/export/customers", authenticateSession, async (req, res) => {
     const headers = [
       "ID",
       "Имя",
-      "Фамилия", 
+      "Фамилия",
       "Страна",
       "Телефон",
       "Email",
@@ -1707,7 +1707,7 @@ app.get("/api/export/customers", authenticateSession, async (req, res) => {
 
     // Создаем CSV строки
     const csvRows = [headers.join(",")];
-    
+
     customers.forEach(customer => {
       // Формируем полный адрес
       const addressParts = [];
@@ -1717,7 +1717,7 @@ app.get("/api/export/customers", authenticateSession, async (req, res) => {
       if (customer.postalCode) addressParts.push(customer.postalCode);
       if (customer.country) addressParts.push(customer.country);
       const fullAddress = addressParts.join(', ');
-      
+
       const row = [
         customer.id,
         `"${customer.firstName || ""}"`,
@@ -1740,11 +1740,11 @@ app.get("/api/export/customers", authenticateSession, async (req, res) => {
     });
 
     const csvContent = csvRows.join("\n");
-    
+
     // Устанавливаем заголовки для скачивания файла
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="sushi_customers_${new Date().toISOString().split('T')[0]}.csv"`);
-    
+
     // Добавляем BOM для корректного отображения кириллицы в Excel
     res.write('\uFEFF');
     res.end(csvContent);
@@ -1764,7 +1764,7 @@ app.get("/api/export/customers/json", authenticateSession, async (req, res) => {
   try {
     // const rawOwnerToken = req.headers["x-owner-token"];
     // const ownerToken = Array.isArray(rawOwnerToken) ? rawOwnerToken[0] : rawOwnerToken;
-    
+
     // if (!ownerToken) {
     //   return res.status(401).json({ message: "Токен не предоставлен." });
     // }
@@ -1789,7 +1789,7 @@ app.get("/api/export/customers/json", authenticateSession, async (req, res) => {
       if (customer.postalCode) addressParts.push(customer.postalCode);
       if (customer.country) addressParts.push(customer.country);
       const fullAddress = addressParts.join(', ');
-      
+
       return {
         "ID": customer.id,
         "Имя": customer.firstName || "",
@@ -1845,10 +1845,10 @@ app.post("/api/owner/broadcast/sms", authenticateSession, async (req, res) => {
 
     // Получаем подписки для клиентов
     const customers = await prisma.customer.findMany({
-      where: { 
+      where: {
         id: { in: recipientIds },
         // --- ИСПРАВЛЕНИЕ 2: Учитываем согласие ---
-        marketingConsent: true 
+        marketingConsent: true
         // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
       },
       select: { id: true, phoneNumber: true },
@@ -1929,7 +1929,7 @@ app.post("/api/owner/broadcast/sms", authenticateSession, async (req, res) => {
 });
 
 // Таргетированная рассылка по E-mail выбранным клиентам
-app.post("/api/owner/broadcast/email",authenticateSession, async (req, res) => {
+app.post("/api/owner/broadcast/email", authenticateSession, async (req, res) => {
   // ИСПРАВЛЕНИЕ: Добавлен try...catch
   try {
     // --- ИСПРАВЛЕНИЕ: Используем req.ownerId
@@ -1944,7 +1944,7 @@ app.post("/api/owner/broadcast/email",authenticateSession, async (req, res) => {
     const { title, body, recipientIds } = targetedBroadcastSchema.parse(req.body);
 
     const customers = await prisma.customer.findMany({
-      where: { 
+      where: {
         id: { in: recipientIds },
         // --- ИСПРАВЛЕНИЕ 3: Учитываем согласие ---
         marketingConsent: true
@@ -2024,8 +2024,8 @@ app.post("/api/owner/broadcast/whatsapp", authenticateSession, async (req, res) 
     });
 
     // Получаем клиентов
-   const customers = await prisma.customer.findMany({
-      where: { 
+    const customers = await prisma.customer.findMany({
+      where: {
         id: { in: recipientIds },
         // --- ИСПРАВЛЕНИЕ 4: Учитываем согласие ---
         marketingConsent: true
@@ -2041,20 +2041,20 @@ app.post("/api/owner/broadcast/whatsapp", authenticateSession, async (req, res) 
         if (!c.phoneNumber) {
           return { status: "skipped", to: c.id, reason: "no-phone" };
         }
-        
+
         // Номер получателя должен быть в формате E.164 с префиксом whatsapp:
         const to = `whatsapp:${c.phoneNumber}`;
-        
+
         try {
           await twilioClient.messages.create({
             from: whatsappFrom,
             to: to,
             body: body,
           });
-          
+
           // (Опционально) Можно добавить логику сохранения в MessageDelivery,
           // как в SMS-эндпоинте, если нужна детальная история
-          
+
           return { status: "sent", to: to };
         } catch (waError) {
           console.error(`Failed to send WhatsApp to ${to}:`, waError.message);
@@ -2105,7 +2105,7 @@ app.post("/api/admin/broadcast/sms-all", authenticateSession, async (req, res) =
 
     // 3. Находим всех, кто подписан
     const subscriptions = await prisma.messageSubscription.findMany({
-      where: { 
+      where: {
         subscribed: true,
         // --- ИСПРАВЛЕНИЕ 5 (РЕШАЕТ ПУНКТ 2): Учитываем согласие ---
         customer: {
@@ -2139,7 +2139,7 @@ app.post("/api/admin/broadcast/sms-all", authenticateSession, async (req, res) =
         if (!to) {
           return { status: "skipped", reason: "no phone number" };
         }
-        
+
         try {
           // Отправляем SMS
           await twilioClient.messages.create({
@@ -2210,7 +2210,7 @@ app.post("/api/admin/broadcast", authenticateSession, async (req, res) => {
   try {
     // 1. Валидация данных (используем новую схему)
     const { userIds, subject, htmlContent } = emailBroadcastSchema.parse(req.body);
-    
+
     // 2. Получаем email'ы выбранных пользователей
     // (Модель 'customer', как видно из /api/customers)
     const customers = await prisma.customer.findMany({
@@ -2225,7 +2225,7 @@ app.post("/api/admin/broadcast", authenticateSession, async (req, res) => {
       }
     });
     // Отфильтровываем null/undefined/пустые email
-    const emails = customers.map(c => c.email).filter(Boolean); 
+    const emails = customers.map(c => c.email).filter(Boolean);
 
     if (emails.length === 0) {
       return res.status(404).json({ message: 'Не найдено пользователей с email среди выбранных ID.' });
@@ -2251,16 +2251,16 @@ app.post("/api/admin/broadcast", authenticateSession, async (req, res) => {
   } catch (error) {
     // Обработка ошибки Zod
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        message: "Некорректные данные для email рассылки.", 
-        errors: error.flatten() 
+      return res.status(400).json({
+        message: "Некорректные данные для email рассылки.",
+        errors: error.flatten()
       });
     }
-    
+
     // Обработка других ошибок
     console.error('Ошибка при отправке SendGrid рассылки:', error);
     if (error.response) {
-        console.error(error.response.body) // Логируем детальный ответ от SendGrid
+      console.error(error.response.body) // Логируем детальный ответ от SendGrid
     }
     res.status(500).json({ message: 'Ошибка сервера при отправке email рассылки.' });
   }
@@ -2272,11 +2272,11 @@ app.post("/api/verify-email", async (req, res) => {
     const { customerId, code } = z.object({
       customerId: z.string(),
       code: z.string()
-              .trim() // Убираем пробелы
-              .min(6, "Код должен быть 6 цифр")
-              .max(6, "Код должен быть 6 цифр"),
+        .trim() // Убираем пробелы
+        .min(6, "Код должен быть 6 цифр")
+        .max(6, "Код должен быть 6 цифр"),
     }).parse(req.body);
-    
+
     // --- НОВОЕ ЛОГГИРОВАНИЕ (Шаг 1) ---
     console.log(`[Verify] Получен запрос на верификацию. CustomerID: ${customerId}, Код: "${code}"`);
 
@@ -2292,7 +2292,7 @@ app.post("/api/verify-email", async (req, res) => {
       console.log(`[Verify] ОШИБКА: Email ${customer.email} уже подтвержден.`);
       return res.status(400).json({ success: false, message: "Email уже подтвержден." });
     }
-    
+
     // --- НОВОЕ ЛОГГИРОВАНИЕ (Шаг 2) ---
     console.log(`[Verify] Сравнение: Код из запроса ("${code}") vs Код из БД ("${customer.emailVerificationCode}")`);
 
@@ -2315,7 +2315,7 @@ app.post("/api/verify-email", async (req, res) => {
     if (updatedCustomer.birthDate) {
       const today = new Date();
       const birthDate = new Date(updatedCustomer.birthDate);
-      
+
       // Сравниваем только месяц и день
       if (today.getMonth() === birthDate.getMonth() && today.getDate() === birthDate.getDate()) {
         console.log(`[Verify] У пользователя ${updatedCustomer.email} сегодня день рождения! Отправляем письмо.`);
@@ -2452,11 +2452,11 @@ app.post('/api/export-to-sheets', authenticateSession, async (req, res) => {
 
 async function checkAndSendBirthdayEmails() {
   console.log('Task: [Birthday] Запуск ежедневной проверки дней рождения...');
-  
+
   const today = new Date();
   const currentMonth = today.getMonth() + 1; // getMonth() 0-indexed
   const currentDay = today.getDate();
-   
+
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   try {
@@ -2486,14 +2486,14 @@ async function checkAndSendBirthdayEmails() {
     console.error('Task: [Birthday] Критическая ошибка (например, $queryRaw) в checkAndSendBirthdayEmails:', dbError);
   }
 }
- 
+
 
 function scheduleDailyCheck() {
   const now = new Date();
-  
+
   // 1. Устанавливаем время следующего запуска (00:01)
   let nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 1, 0, 0);
-  
+
   // Если 00:01 сегодня уже прошло, планируем на завтра
   if (now.getTime() > nextRun.getTime()) {
     nextRun.setDate(nextRun.getDate() + 1);
@@ -2512,7 +2512,7 @@ function scheduleDailyCheck() {
 
     // 4. После первого запуска, ставим интервал на "каждые 24 часа"
     setInterval(checkAndSendBirthdayEmails, 24 * 60 * 60 * 1000);
-    
+
   }, msUntilNextRun);
 }
 
@@ -2527,54 +2527,54 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   console.error('Ошибка: TELEGRAM_BOT_TOKEN не найден в .env');
 } else {
   console.log('✅ TELEGRAM_BOT_TOKEN найден. Запуск бота...');
-  
+
   bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
   // --- 1. НАСТРОЙКА I18N (ИНТЕРНАЦИОНАЛИЗАЦИЯ) ---
   const i18n = new I18n({
-  defaultLanguage: 'ru',
-  allowMissing: true,
-  directory: path.resolve(__dirname, 'locales'),
-});
+    defaultLanguage: 'ru',
+    allowMissing: true,
+    directory: path.resolve(__dirname, 'locales'),
+  });
 
   // --- 2. НАСТРОЙКА СЕССИЙ ---
   // (Для хранения языка, корзины и т.д.)
   const session = new LocalSession({ database: 'sessions.json' });
- bot.use(session.middleware());
+  bot.use(session.middleware());
 
-// --- 2. Потом i18n (он создаст ctx.i18n, но может выбрать 'ru') ---
-bot.use(i18n.middleware());
+  // --- 2. Потом i18n (он создаст ctx.i18n, но может выбрать 'ru') ---
+  bot.use(i18n.middleware());
 
-// --- 3. (ИСПРАВЛЕНИЕ) Наш код, который ЧИНИТ язык ---
-// (Он должен идти ПОСЛЕ i18n.middleware())
-bot.use(async (ctx, next) => {
-  let lang = ctx.session.lang; // 1. Пробуем взять из сессии
+  // --- 3. (ИСПРАВЛЕНИЕ) Наш код, который ЧИНИТ язык ---
+  // (Он должен идти ПОСЛЕ i18n.middleware())
+  bot.use(async (ctx, next) => {
+    let lang = ctx.session.lang; // 1. Пробуем взять из сессии
 
-  // 2. Если в сессии нет, лезем в БД
-  if (!lang && ctx.from && ctx.from.id) {
-    try {
-      const telegramId = BigInt(ctx.from.id);
-      const user = await prisma.customer.findUnique({
-        where: { telegramId: telegramId },
-        select: { languageCode: true }
-      });
-      if (user && user.languageCode) {
-        lang = user.languageCode;
-        ctx.session.lang = lang; // Сохраняем в сессию на будущее
+    // 2. Если в сессии нет, лезем в БД
+    if (!lang && ctx.from && ctx.from.id) {
+      try {
+        const telegramId = BigInt(ctx.from.id);
+        const user = await prisma.customer.findUnique({
+          where: { telegramId: telegramId },
+          select: { languageCode: true }
+        });
+        if (user && user.languageCode) {
+          lang = user.languageCode;
+          ctx.session.lang = lang; // Сохраняем в сессию на будущее
+        }
+      } catch (e) {
+        console.error("Ошибка восстановления языка из БД:", e.message);
       }
-    } catch (e) {
-      console.error("Ошибка восстановления языка из БД:", e.message);
     }
-  }
 
-  // 3. Если мы нашли язык (из сессии или БД),
-  // ПРИНУДИТЕЛЬНО устанавливаем его для i18n
-  if (lang) {
-    ctx.i18n.locale(lang);
-  }
+    // 3. Если мы нашли язык (из сессии или БД),
+    // ПРИНУДИТЕЛЬНО устанавливаем его для i18n
+    if (lang) {
+      ctx.i18n.locale(lang);
+    }
 
-  return next();
-});
+    return next();
+  });
 
   // --- 3. ХЕЛПЕРЫ (Вспомогательные функции) ---
 
@@ -2599,7 +2599,7 @@ bot.use(async (ctx, next) => {
             lastName: ctx.from.last_name || '',
             languageCode: ctx.from.language_code,
             // Генерируем "фейковые" данные для полей NOT NULL
-            phoneNumber: `TELEGRAM_${telegramId}`, 
+            phoneNumber: `TELEGRAM_${telegramId}`,
             country: 'XX',
             discountCode: `TG_${telegramId}_${Date.now()}`
           },
@@ -2611,7 +2611,7 @@ bot.use(async (ctx, next) => {
         return null;
       }
     }
-    
+
     // Обновляем язык в сессии и в БД
     if (ctx.session.lang && user.languageCode !== ctx.session.lang) {
       await prisma.customer.update({
@@ -2629,20 +2629,101 @@ bot.use(async (ctx, next) => {
    */
   const getL10nField = (ctx, item, fieldName) => {
     const lang = ctx.session.lang || 'ru';
-    return item[`${fieldName}_${lang}`] || item[`${fieldName}_ru`]; // Фоллбэк на 'ru'
+
+    return item[`${fieldName}_${lang}`] || item[`${fieldName}_ru`] || item[fieldName] || '';
+  };
+
+  const CATEGORY_LAYOUT = [
+    { key: 'rolls', emoji: '🍣', tokens: ['roll', 'ролл'] },
+    { key: 'sets', emoji: '🥡', tokens: ['set', 'сет'] },
+    { key: 'hot_rolls', emoji: '🔥', tokens: ['hot roll', 'горяч', 'гаряч'] },
+    { key: 'pizzas', emoji: '🍕', tokens: ['pizza', 'пицц', 'піца'] },
+    { key: 'kids', emoji: '👻', tokens: ['kid', 'детск', 'дитяч'] },
+    { key: 'drinks', emoji: '🥤', tokens: ['drink', 'напит', 'напій', 'drank'] },
+    { key: 'sauces', emoji: '⚡️', tokens: ['sauce', 'соус'] },
+  ];
+
+  const categoryEmojiMap = new Map();
+
+  const normalizeValue = (value) => (value ? value.toLowerCase() : '');
+
+  const categoryMatchesTokens = (category, tokens) => {
+    const pool = [
+      category.name_ru,
+      category.name_en,
+      category.name_uk,
+      category.name_nl,
+    ]
+      .filter(Boolean)
+      .map(normalizeValue);
+
+    return tokens.some((token) => {
+      const normalizedToken = token.toLowerCase();
+      return pool.some((name) => name.includes(normalizedToken));
+    });
+  };
+
+  const formatPrice = (value) => {
+    if (typeof value !== 'number') return '0';
+    const fixed = value.toFixed(2);
+    return fixed.endsWith('.00') ? fixed.slice(0, -3) : fixed;
+  };
+
+  const buildProductCaption = (ctx, product) => {
+    const name = getL10nField(ctx, product, 'name');
+    const ingredients = getL10nField(ctx, product, 'ingredients');
+    const emoji = categoryEmojiMap.get(product.categoryId) || '🍣';
+    const priceText = formatPrice(product.price ?? 0);
+
+    return `${emoji} <b>${name} — €${priceText}</b>\n\n<b>${ctx.i18n.t('messages.ingredients_label')}</b>\n${ingredients || ctx.i18n.t('messages.ingredients_empty')}`;
+  };
+
+  const buildProductKeyboard = (ctx, product, isFavorite) => {
+    const favButton = isFavorite
+      ? Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${product.id}`)
+      : Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${product.id}`);
+
+    return Markup.inlineKeyboard([
+      [Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${product.id}`)],
+      [favButton],
+      [Markup.button.callback(ctx.i18n.t('buttons.back_to_category'), `category_${product.categoryId}`)]
+    ]);
+  };
+
+  const sendProductCard = async (ctx, product, caption, keyboard) => {
+    try {
+      if (product.imageUrl) {
+        await ctx.replyWithPhoto(product.imageUrl, {
+          caption,
+          parse_mode: 'HTML',
+          reply_markup: keyboard.reply_markup,
+        });
+      } else {
+        await ctx.replyWithHTML(caption, keyboard);
+      }
+    } catch (photoError) {
+      console.error(`[CRITICAL] Ошибка загрузки фото ${product.imageUrl}:`, photoError.message);
+      await ctx.replyWithHTML(caption, keyboard);
+    }
   };
 
   /**
    * Показывает главное меню
    */
   const showMainMenu = (ctx) => {
+    // Сбрасываем состояние ожидания телефона, если оно было
+    if (ctx.session) ctx.session.step = null;
+
     const keyboard = Markup.keyboard([
-      [ctx.i18n.t('buttons.menu'), ctx.i18n.t('buttons.popular')],
-      // [ctx.i18n.t('buttons.order')], // "Сделать заказ" - это то же самое, что "Меню"
-      [ctx.i18n.t('buttons.promotions'), ctx.i18n.t('buttons.chef')],
-      [ctx.i18n.t('buttons.cart'), ctx.i18n.t('buttons.operator')],
+      [ctx.i18n.t('buttons.menu')],
+      [ctx.i18n.t('buttons.popular')],
+      [ctx.i18n.t('buttons.order')],
+      [ctx.i18n.t('buttons.promotions')],
+      [ctx.i18n.t('buttons.chef')],
+      [ctx.i18n.t('buttons.cart'), ctx.i18n.t('buttons.favorites')],
+      [ctx.i18n.t('buttons.operator')]
     ]).resize();
-    ctx.reply(ctx.i18n.t('messages.main_menu_title'), keyboard);
+    ctx.replyWithHTML(ctx.i18n.t('messages.main_menu_title'), keyboard);
   };
 
   /**
@@ -2668,16 +2749,16 @@ bot.use(async (ctx, next) => {
     // Инициализируем сессию
     ctx.session.lang = ctx.session.lang || 'ru';
     ctx.session.cart = ctx.session.cart || [];
-    
+
     // Пытаемся найти пользователя и установить его язык
     const user = await getOrCreateUser(ctx);
     if (user && user.languageCode) {
       ctx.session.lang = user.languageCode;
       ctx.i18n.locale(user.languageCode);
     }
-    
+
     await sendLogo(ctx);
-    
+
     const langKeyboard = Markup.inlineKeyboard([
       [
         Markup.button.callback('🇷🇺 Русский', 'set_lang_ru'),
@@ -2688,7 +2769,7 @@ bot.use(async (ctx, next) => {
         Markup.button.callback('🇳🇱 Nederlands', 'set_lang_nl'),
       ],
     ]);
-    
+
     await ctx.reply(ctx.i18n.t('messages.welcome'), langKeyboard);
   });
 
@@ -2699,10 +2780,10 @@ bot.use(async (ctx, next) => {
     const lang = ctx.match[1];
     ctx.session.lang = lang;
     ctx.i18n.locale(lang);
-    
+
     // Сохраняем язык в БД
     await getOrCreateUser(ctx);
-    
+
     await ctx.answerCbQuery(`Язык установлен: ${lang}`);
     await ctx.deleteMessage(); // Удаляем кнопки выбора языка
     showMainMenu(ctx);
@@ -2713,218 +2794,259 @@ bot.use(async (ctx, next) => {
    */
   const showCategories = async (ctx) => {
     const categories = await prisma.productCategory.findMany();
-    const buttons = categories.map(cat => {
-      return [
-        Markup.button.callback(
-          getL10nField(ctx, cat, 'name'), // 🍣 Роллы
-          `category_${cat.id}`
-        )
-      ];
-    });
-    
-    buttons.push([Markup.button.callback(ctx.i18n.t('buttons.back_to_main'), 'main_menu')]);
-    
-    await ctx.reply(ctx.i18n.t('messages.choose_category'), Markup.inlineKeyboard(buttons));
-  };
-  
-  /**
-   * Показывает список продуктов в категории
-   */
-  const showProducts = async (ctx, categoryId) => {
-  try {
-    const products = await prisma.product.findMany({
-      where: { categoryId: categoryId },
-    });
+    categoryEmojiMap.clear();
 
-    if (products.length === 0) {
+    const usedCategoryIds = new Set();
+    const orderedCategories = [];
+
+    for (const layout of CATEGORY_LAYOUT) {
+      const match = categories.find(
+        (cat) => !usedCategoryIds.has(cat.id) && categoryMatchesTokens(cat, layout.tokens)
+      );
+
+      if (match) {
+        usedCategoryIds.add(match.id);
+        categoryEmojiMap.set(match.id, layout.emoji);
+        orderedCategories.push({
+          id: match.id,
+          label: ctx.i18n.t(`categories.${layout.key}`),
+        });
+      }
+    }
+
+    categories
+      .filter((cat) => !usedCategoryIds.has(cat.id))
+      .forEach((cat) => {
+        orderedCategories.push({
+          id: cat.id,
+          label: getL10nField(ctx, cat, 'name'),
+        });
+      });
+
+    if (orderedCategories.length === 0) {
       await ctx.reply(ctx.i18n.t('messages.no_products_in_category'));
       return;
     }
 
-    // Отправляем каждый продукт отдельной "карточкой"
-    for (const product of products) {
-      const name = getL10nField(ctx, product, 'name');
-      const ingredients = getL10nField(ctx, product, 'ingredients');
-      const caption = `<b>${name} — ${product.price}€</b>\n\n${ingredients || ''}`;
+    const inlineButtons = orderedCategories.map((item) => [
+      Markup.button.callback(item.label, `category_${item.id}`),
+    ]);
 
-      // Проверяем, в избранном ли
-      const user = await getOrCreateUser(ctx);
-      const isFavorite = user ? await prisma.favoriteProduct.findUnique({
-        where: { customerId_productId: { customerId: user.id, productId: product.id } }
-      }) : false;
+    inlineButtons.push([Markup.button.callback(ctx.i18n.t('buttons.back_to_main'), 'main_menu')]);
 
-      const favButton = isFavorite
-        ? Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${product.id}`)
-        : Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${product.id}`);
+    const categoriesList = orderedCategories.map((item) => item.label).join('\n');
+    const promptRaw = ctx.i18n.t('messages.categories_prompt');
+    const footerRaw = ctx.i18n.t('messages.categories_footer');
+    const prompt = promptRaw === 'messages.categories_prompt' ? '' : promptRaw;
+    const footer = footerRaw === 'messages.categories_footer' ? '' : footerRaw;
+    const messageParts = [];
 
-      const keyboard = Markup.inlineKeyboard([
-        Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${product.id}`),
-        favButton
-      ]);
+    if (prompt) messageParts.push(prompt);
+    if (categoriesList) messageParts.push(categoriesList);
+    if (footer) messageParts.push(footer);
 
-      // --- 🚀 ИСПРАВЛЕНИЕ КРАША (Error 400) ---
-      try {
-        if (product.imageUrl) {
-          // Пытаемся отправить с фото
-          await ctx.replyWithPhoto(product.imageUrl, {
-            caption: caption,
-            parse_mode: 'HTML',
-            reply_markup: keyboard.reply_markup,
-          });
-        } else {
-          // Если imageUrl нет, просто отправляем текст
-          await ctx.replyWithHTML(caption, keyboard);
-        }
-      } catch (photoError) {
-        // Если отправка фото НЕ УДАЛАСЬ (400 Bad Request и т.д.)
-        console.error(`[CRITICAL] Ошибка загрузки фото ${product.imageUrl}:`, photoError.message);
-        // ...отправляем сообщение БЕЗ ФОТО, чтобы бот не упал
-        await ctx.replyWithHTML(caption, keyboard);
-      }
-      // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
-    }
+    await ctx.replyWithHTML(messageParts.join('\n\n'), Markup.inlineKeyboard(inlineButtons));
+  };
 
-    // Кнопка "Назад"
-    await ctx.reply(
-      // --- 🚀 ИСПРАВЛЕНИЕ ЯЗЫКА (убран русский текст) ---
-      ctx.i18n.t('buttons.back_to_categories'), 
-      // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
-      Markup.inlineKeyboard([
-        [Markup.button.callback(ctx.i18n.t('buttons.back_to_categories'), 'show_categories')]
-      ])
-    );
-  } catch (dbError) {
-    console.error("[CRITICAL] Ошибка БД в showProducts:", dbError);
-    await ctx.reply('Произошла ошибка при загрузке товаров. Попробуйте позже.');
-  }
-};
-  
   /**
-   * Показывает продукты по флагу (Popular, Chef, Promo)
+   * Показывает список продуктов в категории
    */
-  const showProductsByFlag = async (ctx, flagName, emptyMessageKey) => {
-  try {
-    const whereClause = {};
-    whereClause[flagName] = true; // e.g. { isPopular: true }
+  const showProducts = async (ctx, categoryId) => {
+    try {
+      const products = await prisma.product.findMany({
+        where: { categoryId: categoryId },
+      });
 
-    const products = await prisma.product.findMany({ where: whereClause });
-
-    if (products.length === 0) {
-      await ctx.reply(ctx.i18n.t(emptyMessageKey));
-      return;
-    }
-
-    for (const product of products) {
-      // (Логика та же, что и в showProducts)
-      const name = getL10nField(ctx, product, 'name');
-      const ingredients = getL10nField(ctx, product, 'ingredients');
-      const caption = `<b>${name} — ${product.price}€</b>\n\n${ingredients || ''}`;
+      if (products.length === 0) {
+        await ctx.reply(ctx.i18n.t('messages.no_products_in_category'));
+        return;
+      }
 
       const user = await getOrCreateUser(ctx);
-      const isFavorite = user ? await prisma.favoriteProduct.findUnique({
-        where: { customerId_productId: { customerId: user.id, productId: product.id } }
-      }) : false;
+      const favoriteIds = new Set();
 
-      const favButton = isFavorite
-        ? Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${product.id}`)
-        : Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${product.id}`);
+      if (user && products.length > 0) {
+        const favorites = await prisma.favoriteProduct.findMany({
+          where: {
+            customerId: user.id,
+            productId: { in: products.map((product) => product.id) },
+          },
+          select: { productId: true },
+        });
 
-      const keyboard = Markup.inlineKeyboard([
-        Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${product.id}`),
-        favButton
-      ]);
-
-      // --- 🚀 ИСПРАВЛЕНИЕ КРАША (Error 400) ---
-      try {
-        if (product.imageUrl) {
-          // Пытаемся отправить с фото
-          await ctx.replyWithPhoto(product.imageUrl, {
-            caption: caption,
-            parse_mode: 'HTML',
-            reply_markup: keyboard.reply_markup,
-          });
-        } else {
-          // Если imageUrl нет, просто отправляем текст
-          await ctx.replyWithHTML(caption, keyboard);
-        }
-      } catch (photoError) {
-        // Если отправка фото НЕ УДАЛАСЬ (400 Bad Request и т.д.)
-        console.error(`[CRITICAL] Ошибка загрузки фото ${product.imageUrl}:`, photoError.message);
-        // ...отправляем сообщение БЕЗ ФОТО, чтобы бот не упал
-        await ctx.replyWithHTML(caption, keyboard);
+        favorites.forEach((favorite) => favoriteIds.add(favorite.productId));
       }
-      // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
+      for (const product of products) {
+        const caption = buildProductCaption(ctx, product);
+        const keyboard = buildProductKeyboard(ctx, product, favoriteIds.has(product.id));
+        await sendProductCard(ctx, product, caption, keyboard);
+      }
+
+      await ctx.replyWithHTML(
+        ctx.i18n.t('messages.categories_footer'),
+        Markup.inlineKeyboard([
+          [Markup.button.callback(ctx.i18n.t('buttons.back_to_categories'), 'show_categories')],
+          [Markup.button.callback(ctx.i18n.t('buttons.back_to_main'), 'main_menu')],
+        ])
+      );
+    } catch (dbError) {
+      console.error("[CRITICAL] Ошибка БД в showProducts:", dbError);
+      await ctx.reply('Произошла ошибка при загрузке товаров. Попробуйте позже.');
     }
-  } catch (dbError) {
-    console.error("[CRITICAL] Ошибка БД в showProductsByFlag:", dbError);
-    await ctx.reply('Произошла ошибка при загрузке товаров. Попробуйте позже.');
-  }
-};
-
-  // --- 5. ОБРАБОТЧИКИ КНОПОК (HEARS) ---
-
-  // 📖 Меню
-  bot.hears(new RegExp('📖'), showCategories);
-  
-  // 🔥 Популярное
-  bot.hears(new RegExp('🔥'), (ctx) => 
-    showProductsByFlag(ctx, 'isPopular', 'messages.no_products_popular')
-  );
-  
-  // 🛍 Сделать заказ (дублирует "Меню")
-  bot.hears(new RegExp('🛍'), showCategories);
-
-  // 🎁 Акции
-  bot.hears(new RegExp('🎁'), (ctx) => 
-    showProductsByFlag(ctx, 'isPromotion', 'messages.no_products_promotions')
-  );
-
-  // ⭐ Рекомендации шефа
-  bot.hears(new RegExp('⭐'), (ctx) => 
-    showProductsByFlag(ctx, 'isChefRecommendation', 'messages.no_products_chef')
-  );
-  
-  // 👨‍💻 Оператор
-  bot.hears(new RegExp('👨‍💻'), (ctx) => 
-    ctx.replyWithHTML(ctx.i18n.t('messages.operator_contact'))
-  );
-
-  // 🧰 Корзина
-  bot.hears(new RegExp('🧰'), async (ctx) => {
+  };
+  const showCart = async (ctx) => {
     const cart = ctx.session.cart || [];
-    
+
     if (cart.length === 0) {
       return ctx.reply(ctx.i18n.t('messages.cart_empty'));
     }
 
     let total = 0;
     let cartText = ctx.i18n.t('messages.cart_title');
-    
-    // Группируем товары
+
+    // Группируем
     const productCounts = cart.reduce((acc, product) => {
       acc[product.id] = (acc[product.id] || 0) + 1;
       return acc;
     }, {});
-    
-    // Нужен один запрос в БД для получения имен
+
     const productsInCart = await prisma.product.findMany({
       where: { id: { in: cart.map(p => p.id) } }
     });
-    
+
     for (const product of productsInCart) {
       const count = productCounts[product.id];
       const name = getL10nField(ctx, product, 'name');
+      // ИСПРАВЛЕНИЕ 1: Цены .toFixed(2)
       cartText += ` - ${name} x${count} (${(product.price * count).toFixed(2)}€)\n`;
       total += product.price * count;
     }
-    
+
     cartText += ctx.i18n.t('messages.cart_total', { total: total.toFixed(2) });
 
     await ctx.replyWithHTML(cartText, Markup.inlineKeyboard([
       [Markup.button.callback(ctx.i18n.t('buttons.checkout'), 'checkout')]
     ]));
-  });
+  };
+  const showFavorites = async (ctx) => {
+    const user = await getOrCreateUser(ctx);
+    if (!user) return;
 
+    const favorites = await prisma.favoriteProduct.findMany({
+      where: { customerId: user.id },
+      include: { product: true }
+    });
+
+    if (favorites.length === 0) {
+      await ctx.reply(ctx.i18n.t('messages.favorites_empty'));
+      return;
+    }
+
+    await ctx.replyWithHTML(ctx.i18n.t('messages.favorites_title'));
+
+    for (const favorite of favorites) {
+      const product = favorite.product;
+      const caption = buildProductCaption(ctx, product);
+      const keyboard = buildProductKeyboard(ctx, product, true);
+      await sendProductCard(ctx, product, caption, keyboard);
+    }
+  };
+  /**
+   * Показывает продукты по флагу (Popular, Chef, Promo)
+   */
+  const showProductsByFlag = async (ctx, flagName, emptyMessageKey) => {
+    try {
+      const whereClause = {};
+      whereClause[flagName] = true; // e.g. { isPopular: true }
+
+      const products = await prisma.product.findMany({ where: whereClause });
+
+      if (products.length === 0) {
+        await ctx.reply(ctx.i18n.t(emptyMessageKey));
+        return;
+      }
+
+      const user = await getOrCreateUser(ctx);
+      const favoriteIds = new Set();
+
+      if (user && products.length > 0) {
+        const favorites = await prisma.favoriteProduct.findMany({
+          where: {
+            customerId: user.id,
+            productId: { in: products.map((product) => product.id) },
+          },
+          select: { productId: true },
+        });
+
+        favorites.forEach((favorite) => favoriteIds.add(favorite.productId));
+      }
+
+      for (const product of products) {
+        const caption = buildProductCaption(ctx, product);
+        const keyboard = buildProductKeyboard(ctx, product, favoriteIds.has(product.id));
+        await sendProductCard(ctx, product, caption, keyboard);
+      }
+    } catch (dbError) {
+      console.error("[CRITICAL] Ошибка БД в showProductsByFlag:", dbError);
+      await ctx.reply('Произошла ошибка при загрузке товаров. Попробуйте позже.');
+    }
+  };
+
+  // --- 5. ОБРАБОТЧИКИ КНОПОК (HEARS) ---
+
+  // 📖 Меню / 🛍 Сделать заказ / Назад к категориям
+  bot.hears(
+    (text, ctx) => {
+      return text === ctx.i18n.t('buttons.menu') ||
+        text === ctx.i18n.t('buttons.order') ||
+        text.includes('📖') ||
+        text.includes('🛍');
+    },
+    showCategories
+  );
+
+  // 🔥 Популярное
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.popular') || text.includes('🔥'),
+    (ctx) => showProductsByFlag(ctx, 'isPopular', 'messages.no_products_popular')
+  );
+
+  // 🎁 Акции (ВОТ ТУТ БЫЛА ОШИБКА, ТЕПЕРЬ ИСПРАВЛЕНО)
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.promotions') || text.includes('🎁'),
+    (ctx) => showProductsByFlag(ctx, 'isPromotion', 'messages.no_products_promotions')
+  );
+
+  // ⭐ Рекомендации шефа
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.chef') || text.includes('⭐'),
+    (ctx) => showProductsByFlag(ctx, 'isChefRecommendation', 'messages.no_products_chef')
+  );
+
+  // ❤️ Избранное
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.favorites') || (text.includes('❤️') && !text.includes('💔') && !text.includes('В избранное')), // Исключаем инлайн кнопки
+    showFavorites
+  );
+
+  // 👨‍💻 Оператор
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.operator') || text.includes('👨‍💻'),
+    (ctx) => ctx.replyWithHTML(ctx.i18n.t('messages.operator_contact'))
+  );
+
+  // 🧰 Корзина
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.cart') || text.includes('🧰'),
+    showCart
+  );
+
+  // ⬅ Назад в главное меню
+  bot.hears(
+    (text, ctx) => text === ctx.i18n.t('buttons.back_to_main') || text.includes('⬅'),
+    (ctx) => showMainMenu(ctx)
+  );
   // --- 6. ОБРАБОТЧИКИ КНОПОК (ACTIONS) ---
 
   // Кнопка "Назад в главное меню"
@@ -2938,7 +3060,7 @@ bot.use(async (ctx, next) => {
     await ctx.deleteMessage();
     await showCategories(ctx);
   });
-  
+
   // Нажатие на категорию
   bot.action(/category_(\d+)/, async (ctx) => {
     const categoryId = parseInt(ctx.match[1]);
@@ -2950,56 +3072,45 @@ bot.use(async (ctx, next) => {
   bot.action(/add_cart_(\d+)/, async (ctx) => {
     const productId = parseInt(ctx.match[1]);
     const product = await prisma.product.findUnique({ where: { id: productId } });
-    
+
     if (product) {
       ctx.session.cart = ctx.session.cart || [];
       ctx.session.cart.push(product); // Добавляем *весь* объект, как в старом коде
-      
+
       const name = getL10nField(ctx, product, 'name');
-      
+
       // Ответ с кнопками (как ты просил)
       await ctx.replyWithHTML(
         ctx.i18n.t('messages.added_to_cart', { productName: name }),
         Markup.inlineKeyboard([
-          [Markup.button.callback(ctx.i18n.t('buttons.add_more'), 'show_categories')], // "Добавить еще" -> вернем к категориям
-          [Markup.button.callback(ctx.i18n.t('buttons.go_to_cart'), 'go_to_cart')] // "Перейти в корзину"
+          [Markup.button.callback(ctx.i18n.t('buttons.add_more'), 'show_categories')],
+          [Markup.button.callback(ctx.i18n.t('buttons.menu_short'), 'main_menu')]
         ])
       );
     }
     await ctx.answerCbQuery();
-  });
-  
-  // Кнопка "Перейти в корзину" из сообщения "Добавлено!"
-  bot.action('go_to_cart', async (ctx) => {
-    await ctx.deleteMessage();
-    // Вызываем обработчик "🧰 Корзина"
-    bot.settings.global.handler(ctx, new RegExp('🧰'));
   });
 
   // ❤️ Добавить в избранное
   bot.action(/add_fav_(\d+)/, async (ctx) => {
     const user = await getOrCreateUser(ctx);
     if (!user) return ctx.answerCbQuery('Ошибка: не удалось найти профиль.');
-    
+
     const productId = parseInt(ctx.match[1]);
-    
+
     await prisma.favoriteProduct.create({
       data: {
         customerId: user.id,
         productId: productId
       }
     });
-    
-    // Обновляем кнопку
-    await ctx.editMessageReplyMarkup({
-      inline_keyboard: [
-        [
-          Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${productId}`),
-          Markup.button.callback(ctx.i18n.t('buttons.remove_from_favorites'), `rem_fav_${productId}`)
-        ]
-      ]
-    });
-    
+
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (product) {
+      const keyboard = buildProductKeyboard(ctx, product, true);
+      await ctx.editMessageReplyMarkup(keyboard.reply_markup);
+    }
+
     await ctx.answerCbQuery(ctx.i18n.t('messages.added_to_favorites'));
   });
 
@@ -3007,63 +3118,67 @@ bot.use(async (ctx, next) => {
   bot.action(/rem_fav_(\d+)/, async (ctx) => {
     const user = await getOrCreateUser(ctx);
     if (!user) return ctx.answerCbQuery('Ошибка: не удалось найти профиль.');
-    
+
     const productId = parseInt(ctx.match[1]);
-    
+
     await prisma.favoriteProduct.deleteMany({
       where: {
         customerId: user.id,
         productId: productId
       }
     });
-    
-    // Обновляем кнопку
-    await ctx.editMessageReplyMarkup({
-      inline_keyboard: [
-        [
-          Markup.button.callback(ctx.i18n.t('buttons.add_to_cart'), `add_cart_${productId}`),
-          Markup.button.callback(ctx.i18n.t('buttons.add_to_favorites'), `add_fav_${productId}`)
-        ]
-      ]
-    });
-    
+
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (product) {
+      const keyboard = buildProductKeyboard(ctx, product, false);
+      await ctx.editMessageReplyMarkup(keyboard.reply_markup);
+    }
+
     await ctx.answerCbQuery(ctx.i18n.t('messages.removed_from_favorites'));
   });
-  
+
   // --- 7. ОФОРМЛЕНИЕ ЗАКАЗА ---
-  
-  // ✅ Оформить заказ (из корзины)
+
   bot.action('checkout', async (ctx) => {
     await ctx.deleteMessage();
+
+    // Устанавливаем состояние "ждем телефон"
+    ctx.session.step = 'awaiting_phone';
+
     await ctx.reply(
-      ctx.i18n.t('messages.checkout_start'),
+      `${ctx.i18n.t('messages.checkout_start')}\n\n${ctx.i18n.t('messages.enter_phone_text')}`,
       Markup.keyboard([
-        [Markup.button.contactRequest(ctx.i18n.t('buttons.checkout_button'))],
-        [ctx.i18n.t('buttons.checkout_cancel')]
+        [Markup.button.contactRequest(ctx.i18n.t('buttons.checkout_button'))], // Кнопка контакта
+        [ctx.i18n.t('buttons.checkout_cancel')] // Кнопка отмены
       ]).resize().oneTime()
     );
   });
-  
+
   // Отмена оформления
   bot.hears(
-    (text, ctx) => text === ctx.i18n.t('buttons.checkout_cancel'), 
+    (text, ctx) => {
+      // Проверяем перевод на всех языках или просто логику
+      const cancelText = ctx.i18n.t('buttons.checkout_cancel');
+      return text === cancelText || text === '❌ Отмена' || text === 'Cancel';
+    },
     async (ctx) => {
+      ctx.session.step = null; // Сбрасываем состояние
       await ctx.reply('Оформление отменено.', Markup.removeKeyboard());
       showMainMenu(ctx);
     }
   );
 
-  // Обработчик получения контакта (телефона)
-  bot.on('contact', async (ctx) => {
-    const phone = ctx.message.contact.phone_number;
+  // Вспомогательная функция финализации заказа
+  const finalizeOrder = async (ctx, phone) => {
     const user = ctx.from;
     const cart = ctx.session.cart || [];
-    
+
     if (cart.length === 0) {
+      ctx.session.step = null;
       return ctx.reply(ctx.i18n.t('messages.cart_empty'), Markup.removeKeyboard());
     }
-    
-    // 1. Формируем текст заказа
+
+    // 1. Формируем текст
     let total = 0;
     let orderText = ctx.i18n.t('messages.checkout_admin_notify_title');
     orderText += ctx.i18n.t('messages.checkout_admin_notify_client', {
@@ -3073,40 +3188,41 @@ bot.use(async (ctx, next) => {
     }) + '\n';
     orderText += ctx.i18n.t('messages.checkout_admin_notify_phone', { phone: phone }) + '\n\n';
     orderText += ctx.i18n.t('messages.checkout_admin_notify_order') + '\n';
-    
-    // Группируем (как в корзине)
+
     const productCounts = cart.reduce((acc, product) => {
       acc[product.id] = (acc[product.id] || 0) + 1;
       return acc;
     }, {});
+
     const productsInCart = await prisma.product.findMany({
       where: { id: { in: cart.map(p => p.id) } }
     });
 
     for (const product of productsInCart) {
       const count = productCounts[product.id];
-      const name = getL10nField(ctx, product, 'name'); // Используем ru, т.к. админ
+      const name = getL10nField(ctx, product, 'name');
       orderText += ` - ${name} x${count} (${(product.price * count).toFixed(2)}€)\n`;
       total += product.price * count;
     }
-    
     orderText += ctx.i18n.t('messages.checkout_admin_notify_total', { total: total.toFixed(2) });
 
-    // 2. Отправляем уведомление менеджеру
+    // 2. Отправляем админу
     try {
       const adminChatId = process.env.ADMIN_TELEGRAM_CHAT_ID;
       if (adminChatId) {
         await bot.telegram.sendMessage(adminChatId, orderText, { parse_mode: 'HTML' });
-      } else {
-        console.warn('ADMIN_TELEGRAM_CHAT_ID не настроен. Заказ не отправлен админу.');
       }
-    } catch (e) {
-      console.error('Не удалось отправить заказ админу', e);
-    }
-    
-    // 3. (Опционально) Сохраняем заказ в БД
+    } catch (e) { console.error(e); }
+
+    // 3. Сохраняем в БД
     const dbUser = await getOrCreateUser(ctx);
     if (dbUser) {
+      // Обновляем телефон пользователя, если он его ввел
+      await prisma.customer.update({
+        where: { id: dbUser.id },
+        data: { phoneNumber: phone }
+      }).catch(() => { }); // Игнорируем, если телефон уже занят
+
       await prisma.order.create({
         data: {
           customerId: dbUser.id,
@@ -3123,19 +3239,47 @@ bot.use(async (ctx, next) => {
       });
     }
 
-    // 4. Отвечаем клиенту
-    await ctx.reply(
-      ctx.i18n.t('messages.checkout_success'),
-      Markup.removeKeyboard() // Убираем кнопки "Отправить номер"
-    );
-    
-    // 5. Очищаем корзину
+    // 4. Финиш
     ctx.session.cart = [];
+    ctx.session.step = null; // Сбрасываем состояние
+    await ctx.reply(ctx.i18n.t('messages.checkout_success'), Markup.removeKeyboard());
     showMainMenu(ctx);
+  };
+
+  // Обработчик КОНТАКТА (Кнопка)
+  bot.on('contact', async (ctx) => {
+    // Принимаем контакт только если мы в режиме чекаута
+    if (ctx.session.step === 'awaiting_phone') {
+      const phone = ctx.message.contact.phone_number;
+      await finalizeOrder(ctx, phone);
+    }
   });
 
+  // Обработчик ТЕКСТА (Ручной ввод номера)
+  bot.on('text', async (ctx, next) => {
+    // Если мы ждем телефон
+    if (ctx.session.step === 'awaiting_phone') {
+      const text = ctx.message.text;
+
+      // Простая валидация (можно усложнить)
+      // Разрешаем плюсы, цифры, скобки, пробелы, тире. Минимум 7 цифр.
+      const phoneRegex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
+
+      // Очищаем от мусора для проверки длины
+      const cleanPhone = text.replace(/\D/g, '');
+
+      if (cleanPhone.length > 6 && cleanPhone.length < 16) {
+        await finalizeOrder(ctx, text);
+      } else {
+        await ctx.reply(ctx.i18n.t('messages.invalid_phone'));
+      }
+    } else {
+      // Если это не ввод телефона, передаем дальше (может это команда меню)
+      return next();
+    }
+  });
   // --- 8. ЗАПУСК БОТА ---
-  
+
   // Запускаем бота
   const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://sushi-icon-promonl.onrender.com';
 
@@ -3215,7 +3359,7 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
     // Проверяем, что это событие со страницы Instagram
     if (body.object === 'instagram') {
       console.log('[IG Webhook] Получено событие от Instagram...');
-      
+
       body.entry.forEach(entry => {
         // entry.messaging может быть массивом, если сообщения пришли пачкой
         entry.messaging.forEach(messagingEvent => {
@@ -3268,19 +3412,19 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
 
         for (const category of categories) {
           await sendInstagramMessage(senderId, `<b>${category.name}</b>`);
-          
+
           for (const product of category.products) {
             const productText = `${product.name} - ${product.price}€\n${product.description || ''}`;
-            
+
             // В Instagram мы не можем слать "inline-кнопки" с фото, как в TG.
             // Мы шлем "Quick Replies" (быстрые ответы).
             const quickReplies = [{
               content_type: 'text',
               title: `Добавить: ${product.name}`,
               // "payload" - это то, что бот получит, когда юзер нажмет кнопку
-              payload: `ADD_TO_CART_${product.id}`, 
+              payload: `ADD_TO_CART_${product.id}`,
             }];
-            
+
             await sendInstagramMessage(senderId, productText, quickReplies);
           }
         }
@@ -3288,10 +3432,10 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
         console.error("Ошибка загрузки IG меню:", e);
         await sendInstagramMessage(senderId, 'Ошибка при загрузке меню.');
       }
-    
-    // --- ЛОГИКА ДОБАВЛЕНИЯ В КОРЗИНУ (через "payload" из кнопок) ---
+
+      // --- ЛОГИКА ДОБАВЛЕНИЯ В КОРЗИНУ (через "payload" из кнопок) ---
     } else if (event.message.quick_reply && event.message.quick_reply.payload.startsWith('ADD_TO_CART_')) {
-      
+
       const productId = parseInt(event.message.quick_reply.payload.split('_')[3]);
       const product = await prisma.product.findUnique({ where: { id: productId } });
 
@@ -3301,7 +3445,7 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
         await sendInstagramMessage(senderId, `В корзине ${session.cart.length} поз. Напишите "cart", чтобы оформить.`);
       }
 
-    // --- ЛОГИКА КОРЗИНЫ ---
+      // --- ЛОГИКА КОРЗИНЫ ---
     } else if (messageText === 'cart' || messageText === '/cart') {
       if (session.cart.length === 0) {
         return await sendInstagramMessage(senderId, 'Ваша корзина пуста. Напишите "menu", чтобы посмотреть.');
@@ -3315,13 +3459,13 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
       });
       cartText += `\nИтого: ${total.toFixed(2)}€`;
       await sendInstagramMessage(senderId, cartText);
-      
+
       // --- АПСЕЛЛ И ОФОРМЛЕНИЕ ---
       await sendInstagramMessage(senderId, 'Хотите что-нибудь еще?', [
         {
           content_type: 'text',
           title: '🎁 Добавить Картошку Фри',
-          payload: 'UPSELL_FRIES', 
+          payload: 'UPSELL_FRIES',
         },
         {
           content_type: 'text',
@@ -3329,17 +3473,17 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
           payload: 'CHECKOUT',
         }
       ]);
-    
-    // --- ЛОГИКА АПСЕЛЛА ---
+
+      // --- ЛОГИКА АПСЕЛЛА ---
     } else if (event.message.quick_reply && event.message.quick_reply.payload === 'UPSELL_FRIES') {
       // (здесь та же логика, что и в TG-боте: найти ID картошки, добавить в сессию)
       await sendInstagramMessage(senderId, 'Картошка добавлена!');
 
-    // --- ЛОГИКА ОФОРМЛЕНИЯ ---
+      // --- ЛОГИКА ОФОРМЛЕНИЯ ---
     } else if (event.message.quick_reply && event.message.quick_reply.payload === 'CHECKOUT') {
-      
+
       await sendInstagramMessage(senderId, 'Спасибо! Ваш заказ принят. Наш менеджер свяжется с вами в этом чате в течение 5 минут для подтверждения и оплаты.');
-      
+
       // (Здесь мы отправляем заказ админу в Telegram)
       const adminChatId = process.env.ADMIN_TELEGRAM_CHAT_ID;
       if (adminChatId) {
@@ -3348,15 +3492,15 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
           let orderText = `<b>НОВЫЙ ЗАКАЗ (Instagram)</b>\n\n`;
           orderText += `<b>Клиент:</b> ${user.first_name} ${user.last_name} (@${user.username})\n`;
           orderText += `<b>ID:</b> ${senderId}\n\n<b>Заказ:</b>\n... (список корзины) ...`;
-          
+
           await telegramBot.telegram.sendMessage(adminChatId, orderText, { parse_mode: 'HTML' });
         } catch (e) { console.error('Не удалось отправить IG заказ админу в TG', e); }
       }
-      
+
       // Очищаем корзину
       session.cart = [];
 
-    // --- "ЭХО" ПО УМОЛЧАНИЮ ---
+      // --- "ЭХО" ПО УМОЛЧАНИЮ ---
     } else {
       // Отвечаем эхом на любое другое сообщение
       await sendInstagramMessage(senderId, `Вы написали: "${messageText}". Напишите "menu", чтобы посмотреть меню.`);
@@ -3378,7 +3522,7 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
     if (quickReplies) {
       messageData.message.quick_replies = quickReplies;
     }
-    
+
     try {
       await axios.post(
         'https://graph.facebook.com/v19.0/me/messages',
@@ -3411,7 +3555,7 @@ if (process.env.INSTAGRAM_VERIFY_TOKEN && process.env.INSTAGRAM_APP_SECRET && pr
       return { first_name: 'Клиент', last_name: 'Instagram' };
     }
   }
-  
+
   // (Нужна переменная telegramBot из блока Telegram. 
   // Убедись, что 'bot' из Telegraf объявлен глобально в блоке 'else')
   // ... код ниже предполагает, что 'bot' доступен как 'telegramBot'
